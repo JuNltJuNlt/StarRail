@@ -359,130 +359,120 @@
     // ============================================================
     // 1. 配置
     // ============================================================
-    const DATA_ROOT = 'data';
-    const MONSTER_ROOT = 'data/monsters';
-    const IMAGE_ROOT = 'images';
+    const DATA_ROOT = 'data'; // 混沌回忆 JSON 文件目录
+    const MONSTER_IMAGE_ROOT = 'monster'; // 怪物图片目录
+    const ELEMENT_IMAGE_ROOT = 'element'; // 元素图标目录
 
-    let baseHpTable = null;
     let allEntries = [];
     let currentIndex = 0;
-    let currentFloorIndex = 11; // 默认最后一层（第12层）
+    let currentFloorIndex = 11;
     let currentMonstersData = [];
     let chartInstance1 = null;
     let chartInstance2 = null;
     let currentImageFormat = 'webp';
-    const monsterCache = {};
+    const monsterCache = {}; // 缓存怪物详情，以怪物 ID 为键
 
     const byId = (id) => document.getElementById(id);
     const wrapIndex = (i, len) => (i + len) % len;
 
     // ============================================================
-    // 2. 数据加载
+    // 2. 数据加载 (直接读取混沌回忆 JSON)
     // ============================================================
-    async function loadBaseHpTable() {
-        const res = await fetch(`${DATA_ROOT}/base_hp.json`);
-        if (!res.ok) throw new Error('无法加载 base_hp.json');
-        baseHpTable = await res.json();
-    }
-
     async function loadIndex() {
         const res = await fetch(`${DATA_ROOT}/index.json`);
         if (!res.ok) throw new Error('无法加载 index.json');
         const data = await res.json();
+        // 假设 index.json 结构为 { entries: [ "1.json", "2.json", ... ] }
         return data.entries || [];
     }
 
-    async function loadMonster(name) {
-        if (monsterCache[name] !== undefined) return monsterCache[name];
+    async function loadMonsterData(monsterId) {
+        if (monsterCache[monsterId] !== undefined) return monsterCache[monsterId];
+        // 这里假设怪物数据直接包含在混沌回忆的 JSON 中，或者有一个单独的 monsters 目录
+        // 为了兼容性，我们先尝试从混沌回忆 JSON 中获取，如果失败则返回 null
+        // 实际使用时，请根据你的数据结构调整
         try {
-            const res = await fetch(`${MONSTER_ROOT}/${name}.json`);
-            if (!res.ok) throw new Error(`无法加载怪物 ${name}.json`);
+            // 假设有一个 monsters 目录存放所有怪物详情
+            const res = await fetch(`${DATA_ROOT}/monsters/${monsterId}.json`);
+            if (!res.ok) throw new Error(`无法加载怪物 ${monsterId}.json`);
             const data = await res.json();
-            monsterCache[name] = data;
+            monsterCache[monsterId] = data;
             return data;
         } catch (err) {
-            console.warn(`跳过不存在的怪物: ${name}`);
-            monsterCache[name] = null;
+            console.warn(`跳过不存在的怪物: ${monsterId}`);
+            monsterCache[monsterId] = null;
             return null;
         }
     }
 
-    async function loadCurrentMonsters() {
-        const entry = allEntries[currentIndex];
-        if (!entry || !entry.bosses || !entry.bosses.length) {
-            currentMonstersData = [];
-            return;
+    // 加载某一期的完整数据（包含层、房间、怪物 ID 和血量等）
+    async function loadEntryData(entryFileName) {
+        const res = await fetch(`${DATA_ROOT}/${entryFileName}`);
+        if (!res.ok) throw new Error(`无法加载 ${entryFileName}`);
+        const data = await res.json();
+        // 假设 data 结构为 { deadly_name, time, floors: [ { floor: 1, rooms: [ [ { id: 'xxx', hp: 1000, ... } ] ] } ] }
+        // 为了兼容原有逻辑，我们将怪物详情提取到 monsterCache 中
+        if (data.floors) {
+            data.floors.forEach(floor => {
+                (floor.rooms || []).forEach(room => {
+                    (room || []).forEach(monster => {
+                        if (monster.id && !monsterCache[monster.id]) {
+                            monsterCache[monster.id] = monster; // 直接将怪物数据缓存
+                        }
+                    });
+                });
+            });
         }
-        const list = await Promise.all(entry.bosses.map(name => loadMonster(name)));
-        currentMonstersData = list.filter(m => m !== null);
+        return data;
     }
 
     // ============================================================
-    // 3. 血量计算
+    // 3. 血量计算 (直接使用 JSON 中的 hp 字段)
     // ============================================================
-    function getBaseHp(level, type = 'v1') {
-        if (!baseHpTable) return 0;
-        const table = baseHpTable[type] || baseHpTable.v1;
-        return table[String(level)] || 0;
+    function getMonsterHp(monster, diffIndex = 5) {
+        // 假设 JSON 中每个怪物有一个 hp 字段，或者有一个 hp 数组对应不同难度
+        // 这里我们简单地从 monster 对象中读取 hp
+        // 如果 hp 是一个数组，则根据 diffIndex 取值
+        if (Array.isArray(monster.hp)) {
+            return monster.hp[diffIndex] || 0;
+        }
+        return monster.hp || 0;
     }
 
-    function calcMonsterHp(boss, diffIndex) {
-        const levels = boss.levels || [95, 95, 95, 95, 95, 95];
-        const multipliers = boss.multipliers || [0.15, 0.30, 0.55, 1.00, 1.79, 3.92];
-        const level = levels[diffIndex] || 95;
-        const mult = multipliers[diffIndex] || 1.0;
-        const baseType = boss.base_type || 'v1';
-        const baseHp = getBaseHp(level, baseType);
-        const relHp = boss.rel_hp || 1.0;
-        return Math.round(baseHp * relHp * mult);
-    }
-
-    // 获取某个房间（stage）的总血量（用于演化图）
-    function getStageTotalHp(bossList, diffIndex = 5) {
-        // 假设每个 boss 的 hp 计算基于 N6（diffIndex=5）
+    function getStageTotalHp(roomMonsters, diffIndex = 5) {
         let total = 0;
-        (bossList || []).forEach(name => {
-            const m = monsterCache[name] || null;
-            if (m) {
-                total += calcMonsterHp(m, diffIndex);
-            }
+        (roomMonsters || []).forEach(monster => {
+            total += getMonsterHp(monster, diffIndex);
         });
         return total;
     }
 
-    // 获取某层（floor）的总血量
-    function getFloorTotalHp(entry, floorIdx) {
-        // entry 结构需包含 floors 数组，每个 floor 包含 rooms（三路）
-        const floors = entry.floors || [];
-        const floor = floors[floorIdx];
+    function getFloorTotalHp(entryData, floorIdx) {
+        const floor = (entryData.floors || [])[floorIdx];
         if (!floor) return 0;
         let total = 0;
-        (floor.rooms || []).forEach(roomBosses => {
-            total += getStageTotalHp(roomBosses, 5);
+        (floor.rooms || []).forEach(room => {
+            total += getStageTotalHp(room, 5);
         });
         return total;
     }
 
-    // 获取某层中前两间的总血量
-    function getFirstTwoRoomsHp(entry, floorIdx) {
-        const floors = entry.floors || [];
-        const floor = floors[floorIdx];
+    function getFirstTwoRoomsHp(entryData, floorIdx) {
+        const floor = (entryData.floors || [])[floorIdx];
         if (!floor) return 0;
         let total = 0;
         const rooms = (floor.rooms || []).slice(0, 2);
-        rooms.forEach(roomBosses => {
-            total += getStageTotalHp(roomBosses, 5);
+        rooms.forEach(room => {
+            total += getStageTotalHp(room, 5);
         });
         return total;
     }
 
-    // 获取某层某一路的血量
-    function getRoomHp(entry, floorIdx, roomIdx) {
-        const floors = entry.floors || [];
-        const floor = floors[floorIdx];
+    function getRoomHp(entryData, floorIdx, roomIdx) {
+        const floor = (entryData.floors || [])[floorIdx];
         if (!floor) return 0;
-        const roomBosses = (floor.rooms || [])[roomIdx];
-        return getStageTotalHp(roomBosses, 5);
+        const room = (floor.rooms || [])[roomIdx];
+        return getStageTotalHp(room, 5);
     }
 
     // ============================================================
@@ -520,7 +510,7 @@
     };
 
     const renderElemMini = (elemCN) => {
-        const basePath = `${IMAGE_ROOT}/elements/${elemCN}`;
+        const basePath = `${ELEMENT_IMAGE_ROOT}/${elemCN}`;
         const fallback = `this.onerror=null; this.src='${basePath}.webp'; this.onerror=function(){ this.style.display='none'; };`;
         return `<span class="elem-mini"><img src="${basePath}.avif" alt="${elemCN}" onerror="${fallback}"></span>`;
     };
@@ -528,7 +518,7 @@
     const renderTraitItem = (item, iconFile) => {
         const html = item.replace(/\*([^*]+)\*/g, (_, elemCN) => renderElemMini(elemCN.trim()));
         return `<div class="trait">
-                    <img src="${IMAGE_ROOT}/elements/${iconFile}.png" alt="">
+                    <img src="${ELEMENT_IMAGE_ROOT}/${iconFile}.png" alt="">
                     <span class="trait-text">${html}</span>
                 </div>`;
     };
@@ -545,23 +535,28 @@
         const container = byId("monsterRow");
         container.innerHTML = '';
 
-        const entry = allEntries[currentIndex];
-        const floorData = entry && entry.floors ? entry.floors[currentFloorIndex] : null;
-        if (!floorData || !floorData.rooms || !floorData.rooms.length) {
+        const entryData = allEntries[currentIndex];
+        if (!entryData || !entryData.floors) {
             container.innerHTML = `<div style="grid-column: span 3; text-align: center; color: #999; padding: 50px;">暂无数据</div>`;
             return;
         }
 
-        // 取第一路（房间一）的怪物列表作为展示（也可根据需求调整）
-        const roomBosses = floorData.rooms[0] || [];
-        const bossList = (roomBosses || []).map(name => monsterCache[name]).filter(Boolean);
-
-        if (!bossList.length) {
+        const floor = entryData.floors[currentFloorIndex];
+        if (!floor || !floor.rooms || !floor.rooms.length) {
             container.innerHTML = `<div style="grid-column: span 3; text-align: center; color: #999; padding: 50px;">暂无数据</div>`;
             return;
         }
 
-        bossList.forEach((boss) => {
+        // 展示第一路的怪物
+        const roomMonsters = floor.rooms[0] || [];
+        if (!roomMonsters.length) {
+            container.innerHTML = `<div style="grid-column: span 3; text-align: center; color: #999; padding: 50px;">暂无数据</div>`;
+            return;
+        }
+
+        roomMonsters.forEach((monster) => {
+            // 怪物数据直接来自 JSON
+            const boss = monster;
             const mechHtml = (boss.mech || "无机制说明")
                 .split('\n')
                 .map(line => line.trim())
@@ -573,21 +568,16 @@
                 })
                 .join('');
 
-            // 展示 N1~N6 中 N1~N3 和 N4~N6 均可，这里展示 N4~N6（即索引 3~5）
+            // 假设怪物有 levels 和 multipliers，如果没有则使用默认
             const displayIndexes = [3, 4, 5];
             const statsHtml = displayIndexes.map(idx => {
-                const hp = calcMonsterHp(boss, idx);
+                const hp = getMonsterHp(boss, idx);
                 const mult = (boss.multipliers || [0.15,0.30,0.55,1.00,1.79,3.92])[idx] || 1;
                 const level = (boss.levels || [95,95,95,95,95,95])[idx] || 95;
                 let hpText = String(hp);
                 if (boss.hp_display && boss.hp_display.base_rel_hp && boss.hp_display.times) {
-                    const oneHp = Math.round(getBaseHp(level, boss.base_type || 'v1') * boss.hp_display.base_rel_hp * mult);
+                    const oneHp = Math.round(getMonsterHp(boss, idx) / boss.hp_display.times);
                     hpText = `${oneHp} × ${boss.hp_display.times}`;
-                } else if (Array.isArray(boss.hp_display) && boss.hp_display[idx]) {
-                    const d = boss.hp_display[idx];
-                    hpText = `${d.base} × ${d.times}`;
-                } else if (boss.hp_display && boss.hp_display.base && boss.hp_display.times) {
-                    hpText = `${boss.hp_display.base} × ${boss.hp_display.times}`;
                 }
                 return `<div class="stat-item">
                             <span class="stat-label">N${idx+1}</span>
@@ -601,13 +591,15 @@
             const cleanName = stripRichMarkup(boss.name || '');
             const nameHtml  = renderRichText(boss.name || '', 'mech-orange', 'mech-elem-');
 
-            const folder    = currentImageFormat === 'webp' ? 'monsters'     : 'monsters-png';
+            // 图片路径：根据怪物 ID 或名称
+            const monsterId = boss.id || cleanName;
+            const folder    = currentImageFormat === 'webp' ? 'monster' : 'monster-png';
             const ext       = currentImageFormat === 'webp' ? 'webp'         : 'png';
-            const altFolder = currentImageFormat === 'webp' ? 'monsters-png' : 'monsters';
+            const altFolder = currentImageFormat === 'webp' ? 'monster-png' : 'monster';
             const altExt    = currentImageFormat === 'webp' ? 'png'          : 'webp';
 
-            const primary  = `${IMAGE_ROOT}/${folder}/${cleanName}.${ext}`;
-            const fallback = `${IMAGE_ROOT}/${altFolder}/${cleanName}.${altExt}`;
+            const primary  = `${folder}/${monsterId}.${ext}`;
+            const fallback = `${altFolder}/${monsterId}.${altExt}`;
             const fallbackChar = (cleanName || '?').charAt(0);
 
             const iconHtml = `<img src="${primary}" alt="${cleanName}" fetchpriority="high" decoding="async"
@@ -634,17 +626,7 @@
     const renderCharts = async () => {
         if (!allEntries.length) return;
 
-        // 确保所有怪物数据已加载
-        const allMonsterNames = new Set();
-        allEntries.forEach(entry => {
-            (entry.floors || []).forEach(floor => {
-                (floor.rooms || []).forEach(room => {
-                    (room || []).forEach(name => allMonsterNames.add(name));
-                });
-            });
-        });
-        await Promise.all([...allMonsterNames].map(n => loadMonster(n)));
-
+        // 确保所有期数数据已加载（这里假设 allEntries 已经包含了完整数据）
         const sortedEntries = allEntries.slice().reverse();
         const labels = sortedEntries.map(e => e.deadly_name || "未知");
 
@@ -653,7 +635,6 @@
         const roomData = [[], [], []];
 
         sortedEntries.forEach(entry => {
-            // 对每层求和？注意：演化图通常只展示某一层的演化，这里我们展示当前选中的层
             const floorIdx = currentFloorIndex;
             totalData.push(getFloorTotalHp(entry, floorIdx));
             firstTwoData.push(getFirstTwoRoomsHp(entry, floorIdx));
@@ -718,7 +699,6 @@
                 const idx = Number(card.dataset.index);
                 if (idx === currentIndex) { closePeriodModal(); return; }
                 currentIndex = idx;
-                await loadCurrentMonsters();
                 // 切换期数后，确保楼层索引不越界
                 const maxFloor = (allEntries[currentIndex].floors || []).length - 1;
                 if (currentFloorIndex > maxFloor) currentFloorIndex = maxFloor;
@@ -794,7 +774,6 @@
         byId("prevSchedule").addEventListener("click", async (e) => {
             e.stopPropagation();
             currentIndex = wrapIndex(currentIndex + 1, allEntries.length);
-            await loadCurrentMonsters();
             const maxFloor = (allEntries[currentIndex].floors || []).length - 1;
             if (currentFloorIndex > maxFloor) currentFloorIndex = maxFloor;
             if (currentFloorIndex < 0) currentFloorIndex = 0;
@@ -803,7 +782,6 @@
         byId("nextSchedule").addEventListener("click", async (e) => {
             e.stopPropagation();
             currentIndex = wrapIndex(currentIndex - 1, allEntries.length);
-            await loadCurrentMonsters();
             const maxFloor = (allEntries[currentIndex].floors || []).length - 1;
             if (currentFloorIndex > maxFloor) currentFloorIndex = maxFloor;
             if (currentFloorIndex < 0) currentFloorIndex = 0;
@@ -848,13 +826,17 @@
     // ============================================================
     async function init() {
         try {
-            await loadBaseHpTable();
-            allEntries = await loadIndex();
-            if (!allEntries.length) throw new Error('index.json 为空');
+            // 1. 加载 index.json 获取期数文件名列表
+            const entryFiles = await loadIndex();
+            if (!entryFiles.length) throw new Error('index.json 为空');
+
+            // 2. 加载每一期的完整数据
+            allEntries = await Promise.all(entryFiles.map(file => loadEntryData(file)));
+
             currentIndex = 0;
             currentFloorIndex = (allEntries[0].floors || []).length - 1;
             if (currentFloorIndex < 0) currentFloorIndex = 0;
-            await loadCurrentMonsters();
+
             bindEvents();
             await render();
         } catch (err) {
