@@ -360,18 +360,15 @@
     // 1. 配置
     // ============================================================
     const DATA_ROOT = 'data/chaos';
-    const MONSTER_IMAGE_ROOT = 'monster';
     const ELEMENT_IMAGE_ROOT = 'element';
 
     let allEntries = [];
     let monsterCatalog = {};
     let currentIndex = 0;
-    let currentFloorIndex = 11; // 默认第12层
-    let currentMonstersData = [];
+    let currentFloorIndex = 11;
     let chartInstance1 = null;
     let chartInstance2 = null;
     let currentImageFormat = 'webp';
-    const monsterCache = {};
 
     const byId = (id) => document.getElementById(id);
     const wrapIndex = (i, len) => (i + len) % len;
@@ -383,10 +380,8 @@
         const res = await fetch(`${DATA_ROOT}/monster_catalog.json`);
         if (!res.ok) throw new Error('无法加载 monster_catalog.json');
         const data = await res.json();
-        // 假设 catalog 是数组，每项包含 id 和详情
-        (data.monsters || data || []).forEach(m => {
-            if (m.id) monsterCatalog[m.id] = m;
-        });
+        // data 是 { "1002020": { "1": "monster/...", "2": [...], "3": 1, "4": "名字" }, ... }
+        monsterCatalog = data || {};
     }
 
     async function loadIndex() {
@@ -399,27 +394,20 @@
     async function loadEntryData(fileName) {
         const res = await fetch(`${DATA_ROOT}/${fileName}`);
         if (!res.ok) throw new Error(`无法加载 ${fileName}`);
-        const data = await res.json();
-        // 预缓存怪物详情
-        if (data.floors) {
-            data.floors.forEach(floor => {
-                ['upper', 'lower', 'star'].forEach(key => {
-                    (floor[key] || []).forEach(stage => {
-                        (stage.monsters || []).forEach(wave => {
-                            (wave || []).forEach(monster => {
-                                if (monster.id && !monsterCache[monster.id]) {
-                                    monsterCache[monster.id] = {
-                                        ...monster,
-                                        ...(monsterCatalog[monster.id] || {})
-                                    };
-                                }
-                            });
-                        });
-                    });
-                });
-            });
-        }
-        return data;
+        return res.json();
+    }
+
+    // 获取怪物详情（从 catalog 中取）
+    function getMonsterInfo(id) {
+        const raw = monsterCatalog[String(id)] || {};
+        return {
+            id: id,
+            name: raw["4"] || `怪物 ${id}`,
+            imagePath: raw["1"] || '',
+            weaknesses: raw["2"] || [],
+            stance: raw["3"] || 0,
+            // 如果有其他字段可继续扩展
+        };
     }
 
     // ============================================================
@@ -512,8 +500,13 @@
 
     const renderTraits = (boss) => {
         const items = [];
-        (boss.strengths || []).forEach(s => items.push(renderTraitItem(s, 'check')));
-        (boss.weaknesses || []).forEach(w => items.push(renderTraitItem(w, 'close')));
+        // 弱点从 catalog 的 "2" 字段取
+        (boss.weaknesses || []).forEach(w => {
+            items.push(`<div class="trait">
+                <img src="${ELEMENT_IMAGE_ROOT}/close.png" alt="">
+                <span class="trait-text">${renderElemMini(w)}</span>
+            </div>`);
+        });
         if (!items.length) return '';
         return `<div class="traits-row">${items.join('')}</div>`;
     };
@@ -534,7 +527,6 @@
             return;
         }
 
-        // 取上半第一波怪物
         const stage = floor.upper[0];
         const firstWave = (stage.monsters || [])[0] || [];
         if (!firstWave.length) {
@@ -544,55 +536,48 @@
 
         firstWave.forEach((monster) => {
             const id = monster.id;
-            const catalog = monsterCatalog[id] || {};
-            const boss = { ...monster, ...catalog };
-            const name = boss.name || `怪物 ${id}`;
-            const mechHtml = (boss.mech || "无机制说明")
-                .split('\n')
-                .map(line => line.trim())
-                .filter(Boolean)
-                .map(line => {
-                    let html = renderRichText(line, 'mech-orange', 'mech-elem-');
-                    html = html.replace(/^·\s/, '<b class="mech-bullet">·</b> ');
-                    return `<div class="mech-line">${html}</div>`;
-                })
-                .join('');
+            const info = getMonsterInfo(id);
+            const name = info.name;
+            const nameHtml = renderRichText(name, 'mech-orange', 'mech-elem-');
+
+            // 图片路径：catalog 的 "1" 字段已是 "monster/Monster_xxx.webp"
+            // 根据格式切换
+            let imgPath = info.imagePath || '';
+            if (currentImageFormat === 'png') {
+                imgPath = imgPath.replace('.webp', '.png');
+            }
+            const primary = imgPath;
+            const fallbackChar = (name || '?').charAt(0);
+
+            const iconHtml = `<img src="${primary}" alt="${name}" fetchpriority="high" decoding="async"
+                onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<span class=\\'fallback\\'>${fallbackChar}</span>';"
+                >`;
+
+            // 血量
+            const hp = getMonsterHp(monster);
 
             const statsHtml = `<div class="stat-item">
                         <span class="stat-label">HP</span>
                         <span class="stat-meta">
-                            <span class="stat-value">${getMonsterHp(monster)}</span>
-                            <span class="stat-percent">Lv${floor.level || '?'} · 速度 ${monster.speed || '?'} · 韧性 ${monster.stance || '?'}</span>
+                            <span class="stat-value">${hp}</span>
+                            <span class="stat-percent">Lv${floor.level || '?'} · 速度 ${monster.speed || '?'} · 韧性 ${monster.stance || info.stance || '?'}</span>
                         </span>
                     </div>`;
 
-            const cleanName = stripRichMarkup(name);
-            const nameHtml = renderRichText(name, 'mech-orange', 'mech-elem-');
-
-            const folder = currentImageFormat === 'webp' ? 'monster' : 'monster-png';
-            const ext = currentImageFormat === 'webp' ? 'webp' : 'png';
-            const altFolder = currentImageFormat === 'webp' ? 'monster-png' : 'monster';
-            const altExt = currentImageFormat === 'webp' ? 'png' : 'webp';
-
-            const primary = `${folder}/${id}.${ext}`;
-            const fallback = `${altFolder}/${id}.${altExt}`;
-            const fallbackChar = (cleanName || '?').charAt(0);
-
-            const iconHtml = `<img src="${primary}" alt="${cleanName}" fetchpriority="high" decoding="async"
-                onerror="this.onerror=null; this.src='${fallback}';
-                         this.onerror=function(){ this.style.display='none'; this.parentElement.innerHTML='<span class=\\'fallback\\'>${fallbackChar}</span>'; }">`;
+            // 机制暂无，留空
+            const mechHtml = '';
 
             const card = document.createElement('div');
             card.className = 'monster-card';
             card.innerHTML = `
                 <div class="monster-icon">${iconHtml}</div>
                 <div class="monster-name">${nameHtml}</div>
-                <div class="monster-sub">${boss.sub || ''}</div>
-                ${renderTraits(boss)}
+                <div class="monster-sub"></div>
+                ${renderTraits(info)}
                 <div class="stats-row">${statsHtml}</div>
                 <div class="mechanism-box">
                     <div class="mech-title">怪物机制研究</div>
-                    ${mechHtml || '<div class="mech-line">无机制说明</div>'}
+                    ${mechHtml || '<div class="mech-line">暂无机制说明</div>'}
                 </div>
             `;
             container.appendChild(card);
@@ -605,13 +590,11 @@
         const sortedEntries = allEntries.slice().reverse();
         const labels = sortedEntries.map(e => e.chaos_name || "未知");
 
-        const totalData = [];
         const upperData = [];
         const lowerData = [];
 
         sortedEntries.forEach(entry => {
             const floorIdx = currentFloorIndex;
-            totalData.push(getFloorTotalHp(entry, floorIdx));
             upperData.push(getUpperHp(entry, floorIdx));
             lowerData.push(getLowerHp(entry, floorIdx));
         });
