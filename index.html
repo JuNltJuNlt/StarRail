@@ -130,84 +130,98 @@
         .floor-switcher .arrow { font-size: 20px; font-weight: bold; cursor: pointer; user-select: none; color: #000; padding: 0 5px; }
         .floor-switcher .floor-text { font-size: 18px; font-weight: 700; color: #000; min-width: 60px; text-align: center; }
 
-        /* Buff 条 */
+        /* 记忆紊流框 */
         .buff-bar {
-            background: #1a2530;
+            background: #1e293b;
             color: #fff;
-            border-radius: 8px;
-            padding: 12px 20px;
-            margin-bottom: 20px;
+            border-radius: 4px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 6px;
+            text-align: left;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
         }
-        .buff-title { font-size: 16px; font-weight: 800; color: #f29e38; }
-        .buff-desc { font-size: 13px; line-height: 1.6; color: #ccc; }
-        .buff-desc color { color: #f29e38; }
+        .buff-title { font-size: 16px; font-weight: 700; color: #fff; }
+        .buff-desc { font-size: 13px; line-height: 1.7; color: #fff; }
+        .buff-desc color { font-weight: bold; }
 
-        /* 整体内容区 */
-        .content-area { display: flex; flex-direction: column; gap: 16px; }
-        .side-section { border: 1px solid #e5e5e5; border-radius: 12px; padding: 12px 16px; background: #fff; }
-        .side-title { font-size: 16px; font-weight: 700; color: #000; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 2px solid #eee; }
-        .side-title .star-icon { color: #f59e0b; }
-        .side-title .level-text { font-size: 13px; font-weight: 400; color: #666; margin-left: 8px; }
+        /* 整体内容区，横排三个房间 */
+        .content-area { display: flex; gap: 20px; width: 100%; align-items: stretch; }
+        
+        .side-section { flex: 1; display: flex; flex-direction: column; }
+        .side-title { font-size: 16px; font-weight: 700; color: #000; text-align: center; margin-bottom: 6px; }
+        .side-title .level-text { font-size: 14px; font-weight: 400; color: #333; }
+        
+        /* 移除多余的波次 block 边框，让排版更紧凑 */
+        .stage-block { display: flex; flex-direction: column; gap: 20px; }
+        .wave-block { display: flex; flex-direction: column; align-items: center; }
+        .wave-label { font-size: 14px; font-weight: 700; color: #000; margin: 10px 0; text-align: center; }
 
-        .stage-block { margin-bottom: 16px; }
-        .stage-block:last-child { margin-bottom: 0; }
-        .stage-header { font-size: 14px; font-weight: 700; color: #2545ba; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-        .stage-header .hp-coef { color: #cc0000; font-size: 13px; }
+        /* 同一波的怪物横向同行居中排列 */
+        .wave-monsters { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; align-items: flex-start; }
 
-        .wave-block { margin-bottom: 10px; }
-        .wave-block:last-child { margin-bottom: 0; }
-        .wave-label { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 6px; }
-        /* 同一波怪物横向排列 */
-        .wave-monsters { display: flex; flex-wrap: nowrap; gap: 12px; align-items: flex-start; overflow-x: auto; padding-bottom: 4px; }
-        .wave-monsters::-webkit-scrollbar { height: 4px; }
-        .wave-monsters::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
-
-        /* 怪物卡片 */
+        /* 怪物卡片样式（完全复刻原图） */
         .monster-card {
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: 110px;
-            flex-shrink: 0;
-            padding: 8px 4px;
-            background: #fafafa;
-            border: 1px solid #e5e5e5;
-            border-radius: 8px;
-            transition: all 0.15s;
-            position: relative;
+            width: 140px;
+            text-align: center;
+            margin-bottom: 10px;
         }
-        .monster-card:hover {
-            border-color: #a855f7;
-            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.15);
-            z-index: 2;
-        }
-        .monster-icon { width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; margin-bottom: 4px; }
-        .monster-icon img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .monster-icon .fallback { font-size: 24px; font-weight: 700; color: #a855f7; }
-        .monster-name { font-size: 12px; font-weight: 700; color: #000; text-align: center; margin-bottom: 3px; line-height: 1.2; }
-        .monster-stats { font-size: 11px; color: #666; text-align: center; line-height: 1.4; }
-        .monster-stats .hp { color: #cc0000; font-weight: 700; }
-        .monster-stats .speed { color: #2545ba; font-weight: 600; }
-        .monster-weakness { display: flex; gap: 2px; justify-content: center; flex-wrap: wrap; margin-top: 3px; }
-        .monster-weakness .elem-mini { width: 14px; height: 14px; border-radius: 50%; overflow: hidden; }
+        
+        .monster-icon { width: 110px; height: 110px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; }
+        .monster-icon img { max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15)); }
+        .monster-icon .fallback { font-size: 40px; font-weight: 700; color: #a855f7; }
+        
+        .monster-name { font-size: 14px; font-weight: 700; color: #000; margin-bottom: 4px; line-height: 1.2; }
+        
+        /* 弱点元素行 */
+        .monster-weakness { display: flex; justify-content: center; gap: 2px; margin-bottom: 4px; height: 18px; }
+        .monster-weakness .elem-mini { width: 16px; height: 16px; border-radius: 50%; overflow: hidden; }
         .monster-weakness .elem-mini img { width: 100%; height: 100%; object-fit: cover; }
 
-        .empty-hint { text-align: center; color: #999; padding: 30px 0; font-size: 14px; }
+        /* 数值行 */
+        .monster-stats { display: flex; flex-direction: column; align-items: center; font-size: 13px; font-weight: bold; line-height: 1.4; }
+        .monster-stats .stance { color: #6a1b9a; }
+        .monster-stats .hp { color: #cc0000; }
+        .monster-stats .speed { color: #2545ba; }
+
+        /* 怪物机制框 */
+        .mechanism-box {
+            width: 100%;
+            background-color: #ffffff;
+            border: 3px solid #1a1a1a;
+            border-radius: 6px;
+            padding: 12px 14px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #1a1a1a;
+            text-align: left;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), inset 0 0 0 1px #fff;
+            min-height: 180px;
+            margin-top: auto;
+        }
+        .mechanism-box .mech-title { font-weight: 800; font-size: 14px; margin-bottom: 6px; color: #000; text-align: center; }
+
+        .empty-hint { text-align: center; color: #999; padding: 30px 0; font-size: 14px; width: 100%; }
 
         .chart-section {
             border-top: 2px solid #eee;
+            margin-top: 20px;
             padding-top: 12px;
             display: flex;
             flex-direction: column;
             gap: 0;
         }
-        .chart-wrapper { width: 100%; height: 360px; position: relative; }
+        .chart-wrapper { width: 100%; height: 400px; position: relative; }
 
         @media (max-width: 1250px) {
             .canvas { width: 100%; padding: 20px; }
+            .content-area { flex-wrap: wrap; }
+            .side-section { flex: 1 1 45%; min-width: 300px; }
         }
 
         @media (max-width: 768px) {
@@ -232,13 +246,15 @@
             .buff-title { font-size: 14px; }
             .buff-desc { font-size: 12px; }
 
-            .wave-monsters { gap: 8px; }
-            .monster-card { width: 90px; padding: 6px 3px; }
-            .monster-icon { width: 44px; height: 44px; }
-            .monster-name { font-size: 11px; }
-            .monster-stats { font-size: 10px; }
+            .content-area { flex-direction: column; }
+            .side-section { width: 100%; }
 
-            .chart-wrapper { height: 260px; }
+            .monster-card { width: 100px; }
+            .monster-icon { width: 80px; height: 80px; }
+            .monster-name { font-size: 13px; }
+            .monster-stats { font-size: 12px; }
+
+            .chart-wrapper { height: 280px; }
 
             .period-modal { width: 95vw; max-height: 90vh; border-radius: 12px; }
             .period-modal-header { padding: 14px 18px 12px; }
@@ -253,11 +269,11 @@
             .canvas { padding: 12px 8px 6px; }
             .header-section h1 { font-size: 20px; letter-spacing: 1px; }
             .period-switcher .date { min-width: 120px; font-size: 12px; }
-            .monster-card { width: 80px; }
-            .monster-icon { width: 36px; height: 36px; }
-            .monster-name { font-size: 10px; }
-            .monster-stats { font-size: 9px; }
-            .chart-wrapper { height: 220px; }
+            .monster-card { width: 90px; }
+            .monster-icon { width: 70px; height: 70px; }
+            .monster-name { font-size: 12px; }
+            .monster-stats { font-size: 11px; }
+            .chart-wrapper { height: 240px; }
         }
     </style>
 </head>
@@ -287,12 +303,13 @@
         <span class="arrow" id="nextFloor">▶</span>
     </div>
 
-    <!-- Buff 条 -->
+    <!-- 记忆紊流框 -->
     <div class="buff-bar" id="buffBar">
         <div class="buff-title" id="buffName">记忆紊流</div>
         <div class="buff-desc" id="buffDesc">加载中...</div>
     </div>
 
+    <!-- 三个房间横向排布 -->
     <div class="content-area" id="contentArea">
         <div class="side-section" id="upperSection">
             <div class="side-title">房间一 <span class="level-text" id="upperLevel"></span></div>
@@ -303,7 +320,7 @@
             <div id="lowerLineup"></div>
         </div>
         <div class="side-section" id="starSection" style="display:none;">
-            <div class="side-title"><span class="star-icon">★</span> 星启模式 <span class="level-text" id="starLevel"></span></div>
+            <div class="side-title">星启模式 <span class="level-text" id="starLevel"></span></div>
             <div id="starLineup"></div>
         </div>
     </div>
@@ -466,14 +483,22 @@
         const hp = monsterTotalHp(monster);
         const speed = monster.speed || '?';
         const stance = monster.stance || info.stance || '?';
+        const times = monster.hp_ratio_sum ? monster.hp_ratio_sum : '';
+
+        // 完全匹配原图的样式
+        const stanceText = stance ? stance : '';
+        const hpText = times ? `${monster.hp}×${times}` : `${monster.hp}`;
+        const speedText = speed ? speed : '';
 
         return `<div class="monster-card">
             <div class="monster-icon">${iconHtml}</div>
             <div class="monster-name">${name}</div>
-            <div class="monster-stats">
-                <span class="hp">HP ${hp}</span> · <span class="speed">速度 ${speed}</span> · 韧性 ${stance}
-            </div>
             <div class="monster-weakness">${weaknessHtml}</div>
+            <div class="monster-stats">
+                <div class="stance">${stanceText}</div>
+                <div class="hp">${hpText}</div>
+                <div class="speed">${speedText}</div>
+            </div>
         </div>`;
     };
 
@@ -488,26 +513,42 @@
                 <div class="wave-monsters">${monstersHtml}</div>
             </div>`;
         }).join('');
+        
         return `<div class="stage-block">
-            <div class="stage-header">
-                <span>${stage.stage_id || ''}</span>
-                ${stage.hp_coefficient ? `<span class="hp-coef">HP ${(stage.hp_coefficient * 100).toFixed(0)}%</span>` : ''}
-            </div>
             ${wavesHtml}
         </div>`;
     };
 
+    // 渲染房间（带机制说明框）
     const renderSide = (sectionId, lineupId, levelId, stages, level) => {
         const section = byId(sectionId);
         const lineup = byId(lineupId);
         const levelEl = byId(levelId);
+        
         if (!stages || !stages.length) {
             section.style.display = 'none';
             return;
         }
-        section.style.display = '';
+        
+        section.style.display = 'flex';
         levelEl.textContent = `Lv${level || '?'}`;
-        lineup.innerHTML = stages.map(stage => renderStage(stage, level)).join('');
+        
+        let contentHtml = stages.map(stage => renderStage(stage, level)).join('');
+        
+        // 提取首波怪物的名字作为机制框的标题
+        let mainMonsterName = '';
+        if (stages[0]?.monsters?.[0]?.[0]?.id) {
+            mainMonsterName = getMonsterInfo(stages[0].monsters[0][0].id).name;
+        }
+        
+        // 这里添加黑白机制的框。因为目前数据暂无机制说明文本，留白处理。
+        // 如果有机制文本，可以在 JSON 扩展 "mech" 字段
+        contentHtml += `<div class="mechanism-box">
+            <div class="mech-title">${mainMonsterName}</div>
+            <div style="text-align: center; color: #999; margin-top: 20px;">暂无机制说明</div>
+        </div>`;
+        
+        lineup.innerHTML = contentHtml;
     };
 
     const renderBuff = () => {
@@ -533,28 +574,18 @@
 
         const starSection = byId('starSection');
         if (floor.star && floor.star.length) {
-            starSection.style.display = '';
+            starSection.style.display = 'flex';
             byId('starLevel').textContent = `Lv${floor.level || '?'}`;
-            byId('starLineup').innerHTML = floor.star.map(stage => renderStage(stage, floor.level)).join('');
+            byId('starLineup').innerHTML = floor.star.map(stage => renderStage(stage, floor.level)).join('') + 
+                `<div class="mechanism-box"><div class="mech-title">星启模式</div><div style="text-align:center;color:#999;margin-top:20px;">暂无机制说明</div></div>`;
         } else {
             starSection.style.display = 'none';
         }
-
-        if (!floor.upper?.length && !floor.lower?.length && !floor.star?.length) {
-            byId('contentArea').innerHTML = '<div class="empty-hint">暂无数据</div>';
-        }
     };
 
-    // 判断某层是否有数据
-    function hasFloorData(entry, floorIdx) {
-        const floor = (entry.floors || [])[floorIdx];
-        if (!floor) return false;
-        return (floor.upper?.length || floor.lower?.length || floor.star?.length);
-    }
-
-    // 找到图表起点：如果是 11 或 12 层，从“藏于深空之秘”开始
+    // 图表范围截断
     function getChartStartIndex() {
-        if (currentFloorIndex < 10) return 0; // 10层及以下不截断
+        if (currentFloorIndex < 10) return 0;
         const startName = "藏于深空之秘";
         const idx = allEntries.findIndex(e => e.chaos_name === startName);
         return idx >= 0 ? idx : 0;
@@ -563,9 +594,8 @@
     const renderCharts = () => {
         if (!allEntries.length) return;
 
-        // 截取图表数据范围
         const startIdx = getChartStartIndex();
-        const chartEntries = allEntries.slice(startIdx).reverse(); // 从旧到新
+        const chartEntries = allEntries.slice(startIdx).reverse();
         const labels = chartEntries.map(e => e.chaos_name || "未知");
 
         const singleData = [];
@@ -576,7 +606,7 @@
 
         chartEntries.forEach(entry => {
             const floor = (entry.floors || [])[currentFloorIndex];
-            if (!floor || !hasFloorData(entry, currentFloorIndex)) {
+            if (!floor) {
                 singleData.push(null);
                 multiData.push(null);
                 upperData.push(null);
@@ -593,15 +623,15 @@
 
         if (!chartInstance1) chartInstance1 = echarts.init(byId("totalChart"));
         chartInstance1.setOption({
-            title: { text: `第${currentFloorIndex + 1}层 总血量演化`, left: "center", top: "2%", textStyle: { fontSize: 14, color: "#333" } },
+            title: { text: `混沌回忆血量演化`, left: "center", top: "2%", textStyle: { fontSize: 16, fontWeight: 'bold', color: "#000" } },
             tooltip: { trigger: "axis" },
-            legend: { top: "8%", left: "center", textStyle: { fontSize: 10 } },
-            grid: { left: "5%", right: "5%", top: "18%", bottom: "1%", containLabel: true },
-            xAxis: { type: "category", data: labels, axisLabel: { fontSize: 10, rotate: 45 } },
-            yAxis: { type: "value", axisLabel: { fontSize: 10 } },
+            legend: { top: "8%", left: "center", textStyle: { fontSize: 12 } },
+            grid: { left: "5%", right: "5%", top: "18%", bottom: "5%", containLabel: true },
+            xAxis: { type: "category", data: labels, axisLabel: { fontSize: 12, rotate: 45 } },
+            yAxis: { type: "value", axisLabel: { fontSize: 12 } },
             series: [
-                { name: "单攻总血量", type: "line", data: singleData, smooth: false, lineStyle: { color: "#cc0000" }, itemStyle: { color: "#cc0000" }, connectNulls: false },
-                { name: "群攻总血量", type: "line", data: multiData, smooth: false, lineStyle: { color: "#2545ba" }, itemStyle: { color: "#2545ba" }, connectNulls: false }
+                { name: "单攻", type: "line", data: singleData, smooth: false, symbol: 'circle', symbolSize: 6, lineStyle: { color: "#cc0000" }, itemStyle: { color: "#cc0000" }, connectNulls: false },
+                { name: "群攻", type: "line", data: multiData, smooth: false, symbol: 'circle', symbolSize: 6, lineStyle: { color: "#2545ba" }, itemStyle: { color: "#2545ba" }, connectNulls: false }
             ]
         });
 
@@ -618,7 +648,7 @@
             title: { text: `第${currentFloorIndex + 1}层 各房间血量演化`, left: "center", top: "2%", textStyle: { fontSize: 14, color: "#333" } },
             tooltip: { trigger: "axis" },
             legend: { top: "8%", left: "center", textStyle: { fontSize: 10 } },
-            grid: { left: "5%", right: "5%", top: "18%", bottom: "1%", containLabel: true },
+            grid: { left: "5%", right: "5%", top: "18%", bottom: "5%", containLabel: true },
             xAxis: { type: "category", data: labels, axisLabel: { fontSize: 10, rotate: 45 } },
             yAxis: { type: "value", axisLabel: { fontSize: 10 } },
             series
