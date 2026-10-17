@@ -130,40 +130,65 @@
         .floor-switcher .arrow { font-size: 20px; font-weight: bold; cursor: pointer; user-select: none; color: #000; padding: 0 5px; }
         .floor-switcher .floor-text { font-size: 18px; font-weight: 700; color: #000; min-width: 60px; text-align: center; }
 
-        /* 主要布局 */
+        /* Buff 条 */
+        .buff-bar {
+            background: #1a2530;
+            color: #fff;
+            border-radius: 8px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .buff-title { font-size: 16px; font-weight: 800; color: #f29e38; }
+        .buff-desc { font-size: 13px; line-height: 1.6; color: #ccc; }
+        .buff-desc color { color: #f29e38; }
+
+        /* 整体内容区 */
         .content-area { display: flex; flex-direction: column; gap: 16px; }
-        .side-section { border: 1px solid #e5e5e5; border-radius: 12px; padding: 12px 16px; }
-        .side-title { font-size: 16px; font-weight: 700; color: #000; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .side-section { border: 1px solid #e5e5e5; border-radius: 12px; padding: 12px 16px; background: #fff; }
+        .side-title { font-size: 16px; font-weight: 700; color: #000; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 2px solid #eee; }
         .side-title .star-icon { color: #f59e0b; }
+        .side-title .level-text { font-size: 13px; font-weight: 400; color: #666; margin-left: 8px; }
 
-        .stage { margin-bottom: 12px; }
-        .stage:last-child { margin-bottom: 0; }
-        .stage-id { font-size: 13px; color: #2545ba; font-weight: 700; margin-bottom: 6px; }
-        .wave { margin-bottom: 8px; }
-        .wave:last-child { margin-bottom: 0; }
-        .wave-name { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 4px; }
-        .wave-monsters { display: flex; flex-wrap: wrap; gap: 8px; }
+        .stage-block { margin-bottom: 16px; }
+        .stage-block:last-child { margin-bottom: 0; }
+        .stage-header { font-size: 14px; font-weight: 700; color: #2545ba; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .stage-header .hp-coef { color: #cc0000; font-size: 13px; }
 
+        .wave-block { margin-bottom: 10px; }
+        .wave-block:last-child { margin-bottom: 0; }
+        .wave-label { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 6px; }
+        .wave-monsters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+
+        /* 怪物卡片 */
         .monster-card {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 6px;
+            width: 120px;
+            padding: 8px 4px;
             background: #fafafa;
             border: 1px solid #e5e5e5;
             border-radius: 8px;
-            padding: 4px 8px;
-            min-width: 120px;
+            transition: all 0.15s;
+            position: relative;
         }
-        .monster-icon { width: 48px; height: 48px; flex-shrink: 0; }
-        .monster-icon img { width: 100%; height: 100%; object-fit: contain; }
-        .monster-icon .fallback { font-size: 24px; font-weight: 700; color: #a855f7; display: flex; align-items: center; justify-content: center; height: 100%; }
-        .monster-info { display: flex; flex-direction: column; gap: 2px; }
-        .monster-name { font-size: 13px; font-weight: 600; color: #000; }
-        .monster-stats { font-size: 12px; color: #666; }
-        .monster-stats .hp { color: #cc0000; font-weight: 600; }
+        .monster-card:hover {
+            border-color: #a855f7;
+            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.15);
+            z-index: 2;
+        }
+        .monster-icon { width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; margin-bottom: 4px; }
+        .monster-icon img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .monster-icon .fallback { font-size: 28px; font-weight: 700; color: #a855f7; }
+        .monster-name { font-size: 13px; font-weight: 700; color: #000; text-align: center; margin-bottom: 4px; line-height: 1.2; }
+        .monster-stats { font-size: 12px; color: #666; text-align: center; line-height: 1.4; }
+        .monster-stats .hp { color: #cc0000; font-weight: 700; }
         .monster-stats .speed { color: #2545ba; font-weight: 600; }
-        .monster-weakness { display: flex; gap: 2px; flex-wrap: wrap; }
-        .monster-weakness .elem-mini { width: 16px; height: 16px; }
+        .monster-weakness { display: flex; gap: 2px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
+        .monster-weakness .elem-mini { width: 16px; height: 16px; border-radius: 50%; overflow: hidden; }
         .monster-weakness .elem-mini img { width: 100%; height: 100%; object-fit: cover; }
 
         .empty-hint { text-align: center; color: #999; padding: 30px 0; font-size: 14px; }
@@ -199,8 +224,13 @@
             .floor-switcher .arrow { font-size: 18px; }
             .floor-switcher .floor-text { font-size: 16px; min-width: 50px; }
 
-            .monster-card { min-width: 100px; padding: 3px 6px; }
-            .monster-icon { width: 40px; height: 40px; }
+            .buff-bar { padding: 10px 14px; }
+            .buff-title { font-size: 14px; }
+            .buff-desc { font-size: 12px; }
+
+            .wave-monsters { gap: 8px; }
+            .monster-card { width: 100px; padding: 6px 3px; }
+            .monster-icon { width: 48px; height: 48px; }
             .monster-name { font-size: 12px; }
             .monster-stats { font-size: 11px; }
 
@@ -219,8 +249,10 @@
             .canvas { padding: 12px 8px 6px; }
             .header-section h1 { font-size: 20px; letter-spacing: 1px; }
             .period-switcher .date { min-width: 120px; font-size: 12px; }
-            .monster-card { min-width: 90px; }
-            .monster-icon { width: 36px; height: 36px; }
+            .monster-card { width: 88px; }
+            .monster-icon { width: 40px; height: 40px; }
+            .monster-name { font-size: 11px; }
+            .monster-stats { font-size: 10px; }
             .chart-wrapper { height: 220px; }
         }
     </style>
@@ -251,17 +283,23 @@
         <span class="arrow" id="nextFloor">▶</span>
     </div>
 
+    <!-- Buff 条 -->
+    <div class="buff-bar" id="buffBar">
+        <div class="buff-title" id="buffName">记忆紊流</div>
+        <div class="buff-desc" id="buffDesc">加载中...</div>
+    </div>
+
     <div class="content-area" id="contentArea">
         <div class="side-section" id="upperSection">
-            <div class="side-title">上半 <span style="font-size:13px;font-weight:400;color:#666;" id="upperLevel"></span></div>
+            <div class="side-title">房间一 <span class="level-text" id="upperLevel"></span></div>
             <div id="upperLineup"></div>
         </div>
         <div class="side-section" id="lowerSection">
-            <div class="side-title">下半 <span style="font-size:13px;font-weight:400;color:#666;" id="lowerLevel"></span></div>
+            <div class="side-title">房间二 <span class="level-text" id="lowerLevel"></span></div>
             <div id="lowerLineup"></div>
         </div>
         <div class="side-section" id="starSection" style="display:none;">
-            <div class="side-title"><span class="star-icon">★</span> 星启模式 <span style="font-size:13px;font-weight:400;color:#666;" id="starLevel"></span></div>
+            <div class="side-title"><span class="star-icon">★</span> 星启模式 <span class="level-text" id="starLevel"></span></div>
             <div id="starLineup"></div>
         </div>
     </div>
@@ -334,6 +372,16 @@
             weaknesses: raw["2"] || [],
             stance: raw["3"] || 0,
         };
+    }
+
+    // 处理 buff 文本中的颜色标记
+    function htmlBuffText(value) {
+        if (!value) return '';
+        // 替换 @... 为颜色，替换 # 为闭合
+        let html = String(value).replaceAll("@", "<color style='color:#f29e38;'>").replaceAll("#", "</color>");
+        // 为数字百分比添加橙色
+        html = html.replace(/(\d+(?:\.\d+)?%?)/g, '<color style="color:#f29e38;">$1</color>');
+        return html;
     }
 
     // ============================================================
@@ -420,13 +468,11 @@
 
         return `<div class="monster-card">
             <div class="monster-icon">${iconHtml}</div>
-            <div class="monster-info">
-                <div class="monster-name">${name}</div>
-                <div class="monster-stats">
-                    <span class="hp">HP ${hp}</span> · <span class="speed">速度 ${speed}</span> · 韧性 ${stance}
-                </div>
-                <div class="monster-weakness">${weaknessHtml}</div>
+            <div class="monster-name">${name}</div>
+            <div class="monster-stats">
+                <span class="hp">HP ${hp}</span> · <span class="speed">速度 ${speed}</span> · 韧性 ${stance}
             </div>
+            <div class="monster-weakness">${weaknessHtml}</div>
         </div>`;
     };
 
@@ -436,13 +482,16 @@
             const waveName = (wave || []).length === 1
                 ? getMonsterInfo(wave[0].id).name
                 : `第${wi + 1}波`;
-            return `<div class="wave">
-                <div class="wave-name">${waveName}</div>
+            return `<div class="wave-block">
+                <div class="wave-label">${waveName}</div>
                 <div class="wave-monsters">${monstersHtml}</div>
             </div>`;
         }).join('');
-        return `<div class="stage">
-            <div class="stage-id">${stage.stage_id || ''} ${stage.hp_coefficient ? `HP ${(stage.hp_coefficient * 100).toFixed(0)}%` : ''}</div>
+        return `<div class="stage-block">
+            <div class="stage-header">
+                <span>${stage.stage_id || ''}</span>
+                ${stage.hp_coefficient ? `<span class="hp-coef">HP ${(stage.hp_coefficient * 100).toFixed(0)}%</span>` : ''}
+            </div>
             ${wavesHtml}
         </div>`;
     };
@@ -460,6 +509,17 @@
         lineup.innerHTML = stages.map(stage => renderStage(stage, level)).join('');
     };
 
+    const renderBuff = () => {
+        const entry = allEntries[currentIndex];
+        if (!entry || !entry.buff) {
+            byId('buffBar').style.display = 'none';
+            return;
+        }
+        byId('buffBar').style.display = '';
+        byId('buffName').textContent = entry.buff.name || '';
+        byId('buffDesc').innerHTML = htmlBuffText(entry.buff.description || '');
+    };
+
     const renderMonsterArea = () => {
         const entry = allEntries[currentIndex];
         if (!entry || !entry.floors) return;
@@ -467,8 +527,8 @@
         const floor = entry.floors[currentFloorIndex];
         if (!floor) return;
 
-        renderSide('upperSection', 'upperLineup', 'upperLevel', floor.upper, floor.level, '上半');
-        renderSide('lowerSection', 'lowerLineup', 'lowerLevel', floor.lower, floor.level, '下半');
+        renderSide('upperSection', 'upperLineup', 'upperLevel', floor.upper, floor.level, '房间一');
+        renderSide('lowerSection', 'lowerLineup', 'lowerLevel', floor.lower, floor.level, '房间二');
 
         const starSection = byId('starSection');
         if (floor.star && floor.star.length) {
@@ -479,7 +539,6 @@
             starSection.style.display = 'none';
         }
 
-        // 如果没有上下半数据，显示提示
         if (!floor.upper?.length && !floor.lower?.length && !floor.star?.length) {
             byId('contentArea').innerHTML = '<div class="empty-hint">暂无数据</div>';
         }
@@ -530,16 +589,15 @@
 
         if (!chartInstance2) chartInstance2 = echarts.init(byId("bossChart"));
         const series = [
-            { name: "上半", type: "line", data: upperData, smooth: false, lineStyle: { color: "#cc0000" }, itemStyle: { color: "#cc0000" } },
-            { name: "下半", type: "line", data: lowerData, smooth: false, lineStyle: { color: "#2545ba" }, itemStyle: { color: "#2545ba" } }
+            { name: "房间一", type: "line", data: upperData, smooth: false, lineStyle: { color: "#cc0000" }, itemStyle: { color: "#cc0000" } },
+            { name: "房间二", type: "line", data: lowerData, smooth: false, lineStyle: { color: "#2545ba" }, itemStyle: { color: "#2545ba" } }
         ];
-        // 如果该层有星启数据（非全0），加入星启线
         if (starData.some(v => v > 0)) {
             series.push({ name: "星启模式", type: "line", data: starData, smooth: false, lineStyle: { color: "#f59e0b" }, itemStyle: { color: "#f59e0b" } });
         }
 
         chartInstance2.setOption({
-            title: { text: `第${currentFloorIndex + 1}层 各侧血量演化`, left: "center", top: "2%", textStyle: { fontSize: 14, color: "#333" } },
+            title: { text: `第${currentFloorIndex + 1}层 各房间血量演化`, left: "center", top: "2%", textStyle: { fontSize: 14, color: "#333" } },
             tooltip: { trigger: "axis" },
             legend: { top: "8%", left: "center", textStyle: { fontSize: 10 } },
             grid: { left: "5%", right: "5%", top: "18%", bottom: "1%", containLabel: true },
@@ -552,6 +610,7 @@
     const render = () => {
         updateHeader();
         renderFloorText();
+        renderBuff();
         renderMonsterArea();
         renderCharts();
     };
