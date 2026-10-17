@@ -320,7 +320,9 @@
     // 1. 配置
     // ============================================================
     const DATA_ROOT = 'data/chaos';
-    const ELEMENT_IMAGE_ROOT = 'images/element'; // 修正为 images/element
+    // 路径拼接逻辑：catalog 里的 "1" 字段可能是 "monster/xxx.webp"
+    // 我们只要在它前面加上 "images/" 即可
+    const IMAGE_BASE = 'images/';
 
     let allEntries = [];
     let monsterCatalog = {};
@@ -361,7 +363,7 @@
             id: id,
             name: raw["4"] || `怪物 ${id}`,
             imagePath: raw["1"] || '',
-            weaknesses: raw["2"] || [], // 从 catalog 获取弱点
+            weaknesses: raw["2"] || [],
             stance: raw["3"] || 0,
         };
     }
@@ -434,7 +436,8 @@
     };
 
     const renderElemMini = (elemCN) => {
-        const basePath = `${ELEMENT_IMAGE_ROOT}/${elemCN}`;
+        // 拼接完整路径：images/element/xxx
+        const basePath = `${IMAGE_BASE}element/${elemCN}`;
         const fallback = `this.onerror=null; this.src='${basePath}.webp'; this.onerror=function(){ this.style.display='none'; };`;
         return `<span class="elem-mini"><img src="${basePath}.avif" alt="${elemCN}" onerror="${fallback}"></span>`;
     };
@@ -442,17 +445,25 @@
     const renderMonsterCard = (monster, level) => {
         const info = getMonsterInfo(monster.id);
         const name = info.name;
-        let imgPath = info.imagePath || '';
-        if (currentImageFormat === 'png') imgPath = imgPath.replace('.webp', '.png');
+
+        // 处理图片路径：如果路径是 "monster/xxx.webp"，则加上 images/
+        let imgPath = '';
+        if (info.imagePath) {
+            imgPath = `${IMAGE_BASE}${info.imagePath}`;
+            if (currentImageFormat === 'png') imgPath = imgPath.replace('.webp', '.png');
+        }
+
         const fallbackChar = (name || '?').charAt(0);
 
-        const iconHtml = `<img src="${imgPath}" alt="${name}" loading="lazy"
-            onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<span class=\\'fallback\\'>${fallbackChar}</span>';">`;
+        const iconHtml = imgPath 
+            ? `<img src="${imgPath}" alt="${name}" loading="lazy"
+               onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<span class=\\'fallback\\'>${fallbackChar}</span>';">`
+            : `<span class="fallback">${fallbackChar}</span>`;
 
-        // 修复：弱点来自 catalog 的 weaknesses
+        // 弱点渲染
         const weaknessHtml = (info.weaknesses || []).map(w => renderElemMini(w)).join('');
 
-        // 韧性数值 ×10
+        // 数值
         const stance = (monster.stance || info.stance || 0) * 10;
         const speed = monster.speed || '?';
         const times = monster.hp_ratio_sum ? monster.hp_ratio_sum : '';
@@ -470,7 +481,6 @@
     };
 
     const renderStage = (stage, level) => {
-        // 找到该房间血量最高的怪，作为判断 Boss 的标准
         let maxHpInStage = 0;
         (stage.monsters || []).forEach(wave => {
             (wave || []).forEach(m => {
@@ -482,11 +492,9 @@
         const wavesHtml = (stage.monsters || []).map((wave, wi) => {
             const monstersHtml = (wave || []).map(m => renderMonsterCard(m, level)).join('');
             
-            // 中文数字波次
             const chineseNums = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
             let waveTitle = `第${chineseNums[wi] || (wi + 1)}波`;
 
-            // 如果该波只有1个怪，且血量等于该房间最高血量（视为首领波），替换为加粗名称
             if (wave.length === 1) {
                 const monsterHp = monsterTotalHp(wave[0]);
                 if (monsterHp === maxHpInStage) {
@@ -505,7 +513,6 @@
         </div>`;
     };
 
-    // 渲染房间
     const renderSide = (sectionId, lineupId, levelId, stages, level) => {
         const section = byId(sectionId);
         const lineup = byId(lineupId);
@@ -552,7 +559,6 @@
         }
     };
 
-    // 图表范围截断
     function getChartEntries() {
         if (currentFloorIndex < 10) return allEntries.slice().reverse();
         
@@ -610,7 +616,6 @@
         });
 
         if (!chartInstance2) chartInstance2 = echarts.init(byId("bossChart"));
-        // 修复：各间颜色参考最早发的幽境危战index：#a855f7, #10b981, #f59e0b
         const series = [
             { name: "房间一", type: "line", data: upperData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#a855f7" }, itemStyle: { color: "#a855f7" }, connectNulls: false },
             { name: "房间二", type: "line", data: lowerData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#10b981" }, itemStyle: { color: "#10b981" }, connectNulls: false }
