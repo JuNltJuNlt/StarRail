@@ -164,7 +164,7 @@
         /* 同一波的怪物横向紧凑居中 */
         .wave-monsters { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; align-items: flex-start; width: 100%; }
 
-        /* 怪物卡片样式，缩窄以放下一排 */
+        /* 怪物卡片样式 */
         .monster-card {
             display: flex;
             flex-direction: column;
@@ -613,8 +613,10 @@
             { name: "房间二", type: "line", data: lowerData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#2545ba" }, itemStyle: { color: "#2545ba" }, connectNulls: false }
         ];
         
-        // 仅当该层有星启/第三间的数据时，才加入曲线
-        const hasStarData = (currentFloor().star && currentFloor().star.length > 0);
+        // 修复：使用当前层对象判断是否有星启数据，避免 currentFloor 未定义
+        const currentFloorData = (allEntries[currentIndex].floors || [])[currentFloorIndex];
+        const hasStarData = (currentFloorData && currentFloorData.star && currentFloorData.star.length > 0);
+        
         if (hasStarData) {
             series.push({ name: "星启模式", type: "line", data: starData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#f59e0b" }, itemStyle: { color: "#f59e0b" }, connectNulls: false });
         }
