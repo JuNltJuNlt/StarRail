@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>混沌回忆 · 星穹铁道</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif; }
+        body { background-color: #f5f6fa; display: flex; justify-content: center; padding: 20px; color: #333; }
+        .canvas { position: relative; width: 1240px; background-color: #ffffff; box-shadow: 0 0 30px rgba(0, 0, 0, 0.1); padding: 30px 40px 10px; border-radius: 8px; overflow: hidden; }
+
+        .download-btn {
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid rgba(168, 85, 247, 0.5);
+            color: #7e22ce;
+            padding: 8px 24px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .download-btn:hover { background: rgba(168, 85, 247, 0.25); border-color: #a855f7; }
+        .download-btn:active { transform: scale(0.97); }
+
+        #btnBar {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+            z-index: 10;
+        }
+        #btnBar .btn-row { display: flex; gap: 10px; }
+        #btnBar.hidden { display: none; }
+
+        .header-section { display: flex; justify-content: center; align-items: center; position: relative; margin-bottom: 20px; }
+        .header-section h1 { font-size: 28px; font-weight: 700; letter-spacing: 3px; color: #000; text-align: center; }
+
+        .period-switcher { display: flex; justify-content: center; align-items: center; gap: 10px; margin: 0 auto 20px; width: fit-content; background: #fff; border: 2px solid #000; border-radius: 30px; padding: 6px 22px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
+        .period-switcher .arrow { font-size: 20px; font-weight: bold; cursor: pointer; user-select: none; color: #000; padding: 0 5px; }
+        .period-switcher .date { font-size: 14px; font-weight: 600; color: #000; text-align: center; line-height: 1.3; min-width: 180px; }
+
+        .period-trigger {
+            cursor: pointer;
+            user-select: none;
+            padding: 4px 10px;
+            border-radius: 12px;
+            transition: background 0.15s;
+        }
+        .period-trigger:hover { background: rgba(168, 85, 247, 0.12); }
+
+        .period-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+        }
+        .period-overlay.show { display: flex; }
+
+        .period-modal {
+            background: #fff;
+            border-radius: 16px;
+            width: 860px;
+            max-width: 92vw;
+            max-height: 86vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+            animation: periodModalIn 0.18s ease-out;
+        }
+        @keyframes periodModalIn {
+            from { transform: translateY(10px); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+
+        .period-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid #eee;
+        }
+        .period-modal-title { font-size: 20px; font-weight: 800; color: #000; margin-bottom: 4px; }
+        .period-modal-time  { font-size: 13px; color: #888; }
+        .period-modal-close {
+            background: none; border: none; font-size: 22px; cursor: pointer;
+            color: #666; padding: 2px 8px; border-radius: 6px; transition: all 0.15s;
+        }
+        .period-modal-close:hover { background: #f0f0f0; color: #000; }
+
+        .period-grid {
+            padding: 20px 24px 24px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+            overflow-y: auto;
+        }
+
+        .period-card {
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 16px 18px;
+            cursor: pointer;
+            transition: all 0.15s;
+            background: #fff;
+        }
+        .period-card:hover {
+            border-color: #a855f7;
+            box-shadow: 0 4px 14px rgba(168, 85, 247, 0.18);
+            transform: translateY(-1px);
+        }
+        .period-card.active {
+            border-color: #a855f7;
+            background: #faf5ff;
+            box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.25);
+        }
+        .period-card .pc-name { font-size: 16px; font-weight: 800; color: #000; margin-bottom: 4px; }
+        .period-card .pc-time { font-size: 13px; color: #888; }
+
+        .floor-switcher { display: flex; justify-content: center; align-items: center; gap: 12px; margin-bottom: 16px; }
+        .floor-switcher .arrow { font-size: 20px; font-weight: bold; cursor: pointer; user-select: none; color: #000; padding: 0 5px; }
+        .floor-switcher .floor-text { font-size: 18px; font-weight: 700; color: #000; min-width: 60px; text-align: center; }
+
+        .monster-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 14px;
+            align-items: stretch;
+        }
+        .monster-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            padding: 4px;
+            border-radius: 8px;
+            height: 100%;
+        }
+
+        .monster-icon {
+            width: 220px; height: 220px;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1; margin-bottom: 6px; position: relative;
+        }
+        .monster-icon img {
+            max-width: 100%; max-height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 6px 12px rgba(168, 85, 247, 0.35));
+        }
+        .monster-icon .fallback {
+            font-size: 80px; font-weight: 700; color: #a855f7;
+            text-shadow: 0 4px 6px rgba(0,0,0,0.15);
+        }
+
+        .monster-name {
+            font-size: 17px;
+            font-weight: 700;
+            color: #000;
+            text-align: center;
+            margin-bottom: 4px;
+            z-index: 1;
+        }
+
+        .monster-sub { font-size: 13px; color: #666; text-align: center; margin-bottom: 8px; z-index: 1; }
+
+        .traits-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 10px;
+            z-index: 1;
+            width: 100%;
+            align-items: center;
+            min-height: 44px;
+        }
+        .trait { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #333; flex-wrap: wrap; justify-content: center; }
+        .trait > img { width: 18px; height: 18px; }
+        .trait .trait-text { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center; }
+        .trait .elem-mini { width: 20px; height: 20px; border-radius: 50%; overflow: hidden; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
+        .trait .elem-mini img { width: 100%; height: 100%; object-fit: cover; }
+
+        .stats-row {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 14px;
+            z-index: 1;
+            width: 100%;
+            min-height: 78px;
+        }
+        .stats-row .stat-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .stats-row .stat-label { color: #333; text-align: left; }
+        .stats-row .stat-meta { display: contents; }
+        .stats-row .stat-value { color: #cc0000; font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif; text-align: right; }
+        .stats-row .stat-percent { color: #888; font-size: 13px; text-align: left; }
+
+        .mechanism-box { width: 100%; background-color: #ffffff; border: 3px solid #1a1a1a; border-radius: 6px; padding: 12px 14px; font-size: 13px; line-height: 1.6; color: #1a1a1a; text-align: left; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), inset 0 0 0 1px #fff; z-index: 1; min-height: 240px; flex-grow: 1; }
+        .mechanism-box .mech-title { font-weight: 800; font-size: 14px; margin-bottom: 6px; color: #000; }
+        .mechanism-box .mech-line { margin-bottom: 4px; text-align: justify; }
+
+        .mechanism-box .mech-orange,
+        .monster-name .mech-orange {
+            font-weight: 800;
+            color: #E8A33D;
+        }
+
+        .mechanism-box .mech-elem-0, .monster-name .mech-elem-0 { font-weight: 800; color: #000; }
+        .mechanism-box .mech-elem-1, .monster-name .mech-elem-1 { font-weight: 800; color: #FF0000; }
+        .mechanism-box .mech-elem-2, .monster-name .mech-elem-2 { font-weight: 800; color: #1E88E5; }
+        .mechanism-box .mech-elem-3, .monster-name .mech-elem-3 { font-weight: 800; color: #3DD9B0; }
+        .mechanism-box .mech-elem-4, .monster-name .mech-elem-4 { font-weight: 800; color: #7B2FBE; }
+        .mechanism-box .mech-elem-5, .monster-name .mech-elem-5 { font-weight: 800; color: #4CAF50; }
+        .mechanism-box .mech-elem-6, .monster-name .mech-elem-6 { font-weight: 800; color: #6CD5FF; }
+        .mechanism-box .mech-elem-7, .monster-name .mech-elem-7 { font-weight: 800; color: #D4A017; }
+
+        .mechanism-box .mech-bullet {
+            font-weight: 800;
+            color: #000;
+        }
+
+        .chart-section {
+            border-top: 2px solid #eee;
+            padding-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+        .chart-wrapper { width: 100%; height: 360px; position: relative; }
+
+        @media (max-width: 1250px) {
+            .canvas { width: 100%; padding: 20px; }
+            .monster-row { gap: 15px; }
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 8px; }
+            .canvas { width: 100% !important; padding: 16px 12px 8px; border-radius: 6px; }
+
+            .header-section { margin-bottom: 12px; }
+            .header-section h1 { font-size: 22px; letter-spacing: 2px; }
+
+            #btnBar { position: static; align-items: center; margin-bottom: 12px; gap: 8px; }
+            #btnBar .btn-row { flex-wrap: wrap; justify-content: center; }
+            .download-btn { padding: 6px 16px; font-size: 13px; }
+
+            .period-switcher { padding: 4px 14px; gap: 6px; margin-bottom: 14px; }
+            .period-switcher .arrow { font-size: 18px; }
+            .period-switcher .date { font-size: 13px; min-width: 140px; }
+
+            .floor-switcher .arrow { font-size: 18px; }
+            .floor-switcher .floor-text { font-size: 16px; min-width: 50px; }
+
+            .monster-row { grid-template-columns: 1fr; gap: 16px; margin-bottom: 10px; }
+            .monster-card { padding: 4px 4px 10px; }
+
+            .monster-icon { width: 160px; height: 160px; margin-bottom: 8px; }
+            .monster-icon .fallback { font-size: 60px; }
+            .monster-name { font-size: 16px; }
+            .monster-sub { font-size: 12px; }
+
+            .traits-row { min-height: 36px; margin-bottom: 8px; }
+            .trait { font-size: 13px; }
+
+            .stats-row { min-height: 70px; margin-bottom: 10px; }
+            .stats-row .stat-item { gap: 10px; font-size: 15px; }
+            .stats-row .stat-percent { font-size: 12px; }
+
+            .mechanism-box { min-height: auto; font-size: 12px; padding: 10px 12px; line-height: 1.55; }
+            .mechanism-box .mech-title { font-size: 13px; }
+
+            .chart-wrapper { height: 260px; }
+
+            .period-modal { width: 95vw; max-height: 90vh; border-radius: 12px; }
+            .period-modal-header { padding: 14px 18px 12px; }
+            .period-modal-title { font-size: 18px; }
+            .period-grid { grid-template-columns: 1fr; padding: 14px 18px 18px; gap: 10px; }
+            .period-card { padding: 12px 14px; }
+            .period-card .pc-name { font-size: 15px; }
+            .period-card .pc-time { font-size: 12px; }
+        }
+
+        @media (max-width: 480px) {
+            .canvas { padding: 12px 8px 6px; }
+            .header-section h1 { font-size: 20px; letter-spacing: 1px; }
+            .period-switcher .date { min-width: 120px; font-size: 12px; }
+            .monster-icon { width: 140px; height: 140px; }
+            .monster-name { font-size: 15px; }
+            .stats-row .stat-item { gap: 8px; font-size: 14px; }
+            .stats-row .stat-value { min-width: unset; }
+            .chart-wrapper { height: 220px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="canvas">
+    <div id="btnBar">
+        <div class="btn-row">
+            <button class="download-btn" id="downloadBtn">下载图片</button>
+            <button class="download-btn" id="toggleFormatBtn">切换图片格式-png</button>
+        </div>
+    </div>
+
+    <div class="header-section"><h1>混沌回忆</h1></div>
+
+    <div class="period-switcher">
+        <span class="arrow" id="prevSchedule">◀</span>
+        <span class="date period-trigger" id="periodTrigger">
+            <span id="scheduleDate">加载中...</span>
+        </span>
+        <span class="arrow" id="nextSchedule">▶</span>
+    </div>
+
+    <div class="floor-switcher">
+        <span class="arrow" id="prevFloor">◀</span>
+        <span class="floor-text" id="floorText">12</span>
+        <span class="arrow" id="nextFloor">▶</span>
+    </div>
+
+    <div class="monster-row" id="monsterRow"></div>
+    <div class="chart-section">
+        <div class="chart-wrapper" id="totalChart"></div>
+        <div class="chart-wrapper" id="bossChart"></div>
+    </div>
+</div>
+
+<div class="period-overlay" id="periodOverlay">
+    <div class="period-modal">
+        <div class="period-modal-header">
+            <div>
+                <div class="period-modal-title" id="modalCurrentName">7.1</div>
+                <div class="period-modal-time" id="modalCurrentTime">2026/09/30 - 2026/11/03</div>
+            </div>
+            <button class="period-modal-close" id="periodModalClose">✕</button>
+        </div>
+        <div class="period-grid" id="periodGrid"></div>
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    // 1. 配置
+    // ============================================================
+    const DATA_ROOT = 'data';
+    const MONSTER_ROOT = 'data/monsters';
+    const IMAGE_ROOT = 'images';
+
+    let baseHpTable = null;
+    let allEntries = [];
+    let currentIndex = 0;
+    let currentFloorIndex = 11; // 默认最后一层（第12层）
+    let currentMonstersData = [];
+    let chartInstance1 = null;
+    let chartInstance2 = null;
+    let currentImageFormat = 'webp';
+    const monsterCache = {};
+
+    const byId = (id) => document.getElementById(id);
+    const wrapIndex = (i, len) => (i + len) % len;
+
+    // ============================================================
+    // 2. 数据加载
+    // ============================================================
+    async function loadBaseHpTable() {
+        const res = await fetch(`${DATA_ROOT}/base_hp.json`);
+        if (!res.ok) throw new Error('无法加载 base_hp.json');
+        baseHpTable = await res.json();
+    }
+
+    async function loadIndex() {
+        const res = await fetch(`${DATA_ROOT}/index.json`);
+        if (!res.ok) throw new Error('无法加载 index.json');
+        const data = await res.json();
+        return data.entries || [];
+    }
+
+    async function loadMonster(name) {
+        if (monsterCache[name] !== undefined) return monsterCache[name];
+        try {
+            const res = await fetch(`${MONSTER_ROOT}/${name}.json`);
+            if (!res.ok) throw new Error(`无法加载怪物 ${name}.json`);
+            const data = await res.json();
+            monsterCache[name] = data;
+            return data;
+        } catch (err) {
+            console.warn(`跳过不存在的怪物: ${name}`);
+            monsterCache[name] = null;
+            return null;
+        }
+    }
+
+    async function loadCurrentMonsters() {
+        const entry = allEntries[currentIndex];
+        if (!entry || !entry.bosses || !entry.bosses.length) {
+            currentMonstersData = [];
+            return;
+        }
+        const list = await Promise.all(entry.bosses.map(name => loadMonster(name)));
+        currentMonstersData = list.filter(m => m !== null);
+    }
+
+    // ============================================================
+    // 3. 血量计算
+    // ============================================================
+    function getBaseHp(level, type = 'v1') {
+        if (!baseHpTable) return 0;
+        const table = baseHpTable[type] || baseHpTable.v1;
+        return table[String(level)] || 0;
+    }
+
+    function calcMonsterHp(boss, diffIndex) {
+        const levels = boss.levels || [95, 95, 95, 95, 95, 95];
+        const multipliers = boss.multipliers || [0.15, 0.30, 0.55, 1.00, 1.79, 3.92];
+        const level = levels[diffIndex] || 95;
+        const mult = multipliers[diffIndex] || 1.0;
+        const baseType = boss.base_type || 'v1';
+        const baseHp = getBaseHp(level, baseType);
+        const relHp = boss.rel_hp || 1.0;
+        return Math.round(baseHp * relHp * mult);
+    }
+
+    // 获取某个房间（stage）的总血量（用于演化图）
+    function getStageTotalHp(bossList, diffIndex = 5) {
+        // 假设每个 boss 的 hp 计算基于 N6（diffIndex=5）
+        let total = 0;
+        (bossList || []).forEach(name => {
+            const m = monsterCache[name] || null;
+            if (m) {
+                total += calcMonsterHp(m, diffIndex);
+            }
+        });
+        return total;
+    }
+
+    // 获取某层（floor）的总血量
+    function getFloorTotalHp(entry, floorIdx) {
+        // entry 结构需包含 floors 数组，每个 floor 包含 rooms（三路）
+        const floors = entry.floors || [];
+        const floor = floors[floorIdx];
+        if (!floor) return 0;
+        let total = 0;
+        (floor.rooms || []).forEach(roomBosses => {
+            total += getStageTotalHp(roomBosses, 5);
+        });
+        return total;
+    }
+
+    // 获取某层中前两间的总血量
+    function getFirstTwoRoomsHp(entry, floorIdx) {
+        const floors = entry.floors || [];
+        const floor = floors[floorIdx];
+        if (!floor) return 0;
+        let total = 0;
+        const rooms = (floor.rooms || []).slice(0, 2);
+        rooms.forEach(roomBosses => {
+            total += getStageTotalHp(roomBosses, 5);
+        });
+        return total;
+    }
+
+    // 获取某层某一路的血量
+    function getRoomHp(entry, floorIdx, roomIdx) {
+        const floors = entry.floors || [];
+        const floor = floors[floorIdx];
+        if (!floor) return 0;
+        const roomBosses = (floor.rooms || [])[roomIdx];
+        return getStageTotalHp(roomBosses, 5);
+    }
+
+    // ============================================================
+    // 3.5 富文本渲染 与 名字净化
+    // ============================================================
+    const renderRichText = (raw, orangeClass = 'mech-orange', elemPrefix = 'mech-elem-') => {
+        if (!raw) return '';
+        let html = String(raw);
+        html = html.replace(/\*([0-7])\*([^*]+)\*\1\*/g, (_, n, text) => {
+            return `<span class="${elemPrefix}${n}">${text}</span>`;
+        });
+        html = html.replace(/\*\*([^*]+)\*\*/g, (_, text) => {
+            return `<span class="${orangeClass}">${text}</span>`;
+        });
+        html = html.replace(/<\/span>(\s+)/g, '</span>&nbsp;');
+        return html;
+    };
+
+    const stripRichMarkup = (raw) => {
+        if (!raw) return '';
+        return String(raw).replace(/\*[0-7]\*/g, '').replace(/\*\*/g, '');
+    };
+
+    // ============================================================
+    // 4. 渲染
+    // ============================================================
+    const updateHeader = () => {
+        const entry = allEntries[currentIndex];
+        if (!entry) return;
+        byId("scheduleDate").innerHTML = `${entry.deadly_name || ''}<br>${entry.time || ""}`;
+    };
+
+    const renderFloorText = () => {
+        byId("floorText").textContent = String(currentFloorIndex + 1);
+    };
+
+    const renderElemMini = (elemCN) => {
+        const basePath = `${IMAGE_ROOT}/elements/${elemCN}`;
+        const fallback = `this.onerror=null; this.src='${basePath}.webp'; this.onerror=function(){ this.style.display='none'; };`;
+        return `<span class="elem-mini"><img src="${basePath}.avif" alt="${elemCN}" onerror="${fallback}"></span>`;
+    };
+
+    const renderTraitItem = (item, iconFile) => {
+        const html = item.replace(/\*([^*]+)\*/g, (_, elemCN) => renderElemMini(elemCN.trim()));
+        return `<div class="trait">
+                    <img src="${IMAGE_ROOT}/elements/${iconFile}.png" alt="">
+                    <span class="trait-text">${html}</span>
+                </div>`;
+    };
+
+    const renderTraits = (boss) => {
+        const items = [];
+        (boss.strengths || []).forEach(s => items.push(renderTraitItem(s, 'check')));
+        (boss.weaknesses || []).forEach(w => items.push(renderTraitItem(w, 'close')));
+        if (!items.length) return '';
+        return `<div class="traits-row">${items.join('')}</div>`;
+    };
+
+    const renderMonsterCards = () => {
+        const container = byId("monsterRow");
+        container.innerHTML = '';
+
+        const entry = allEntries[currentIndex];
+        const floorData = entry && entry.floors ? entry.floors[currentFloorIndex] : null;
+        if (!floorData || !floorData.rooms || !floorData.rooms.length) {
+            container.innerHTML = `<div style="grid-column: span 3; text-align: center; color: #999; padding: 50px;">暂无数据</div>`;
+            return;
+        }
+
+        // 取第一路（房间一）的怪物列表作为展示（也可根据需求调整）
+        const roomBosses = floorData.rooms[0] || [];
+        const bossList = (roomBosses || []).map(name => monsterCache[name]).filter(Boolean);
+
+        if (!bossList.length) {
+            container.innerHTML = `<div style="grid-column: span 3; text-align: center; color: #999; padding: 50px;">暂无数据</div>`;
+            return;
+        }
+
+        bossList.forEach((boss) => {
+            const mechHtml = (boss.mech || "无机制说明")
+                .split('\n')
+                .map(line => line.trim())
+                .filter(Boolean)
+                .map(line => {
+                    let html = renderRichText(line, 'mech-orange', 'mech-elem-');
+                    html = html.replace(/^·\s/, '<b class="mech-bullet">·</b> ');
+                    return `<div class="mech-line">${html}</div>`;
+                })
+                .join('');
+
+            // 展示 N1~N6 中 N1~N3 和 N4~N6 均可，这里展示 N4~N6（即索引 3~5）
+            const displayIndexes = [3, 4, 5];
+            const statsHtml = displayIndexes.map(idx => {
+                const hp = calcMonsterHp(boss, idx);
+                const mult = (boss.multipliers || [0.15,0.30,0.55,1.00,1.79,3.92])[idx] || 1;
+                const level = (boss.levels || [95,95,95,95,95,95])[idx] || 95;
+                let hpText = String(hp);
+                if (boss.hp_display && boss.hp_display.base_rel_hp && boss.hp_display.times) {
+                    const oneHp = Math.round(getBaseHp(level, boss.base_type || 'v1') * boss.hp_display.base_rel_hp * mult);
+                    hpText = `${oneHp} × ${boss.hp_display.times}`;
+                } else if (Array.isArray(boss.hp_display) && boss.hp_display[idx]) {
+                    const d = boss.hp_display[idx];
+                    hpText = `${d.base} × ${d.times}`;
+                } else if (boss.hp_display && boss.hp_display.base && boss.hp_display.times) {
+                    hpText = `${boss.hp_display.base} × ${boss.hp_display.times}`;
+                }
+                return `<div class="stat-item">
+                            <span class="stat-label">N${idx+1}</span>
+                            <span class="stat-meta">
+                                <span class="stat-value">${hpText}</span>
+                                <span class="stat-percent">Lv${level} · ${(mult*100).toFixed(0)}%</span>
+                            </span>
+                        </div>`;
+            }).join('');
+
+            const cleanName = stripRichMarkup(boss.name || '');
+            const nameHtml  = renderRichText(boss.name || '', 'mech-orange', 'mech-elem-');
+
+            const folder    = currentImageFormat === 'webp' ? 'monsters'     : 'monsters-png';
+            const ext       = currentImageFormat === 'webp' ? 'webp'         : 'png';
+            const altFolder = currentImageFormat === 'webp' ? 'monsters-png' : 'monsters';
+            const altExt    = currentImageFormat === 'webp' ? 'png'          : 'webp';
+
+            const primary  = `${IMAGE_ROOT}/${folder}/${cleanName}.${ext}`;
+            const fallback = `${IMAGE_ROOT}/${altFolder}/${cleanName}.${altExt}`;
+            const fallbackChar = (cleanName || '?').charAt(0);
+
+            const iconHtml = `<img src="${primary}" alt="${cleanName}" fetchpriority="high" decoding="async"
+                onerror="this.onerror=null; this.src='${fallback}';
+                         this.onerror=function(){ this.style.display='none'; this.parentElement.innerHTML='<span class=\\'fallback\\'>${fallbackChar}</span>'; }">`;
+
+            const card = document.createElement('div');
+            card.className = 'monster-card';
+            card.innerHTML = `
+                <div class="monster-icon">${iconHtml}</div>
+                <div class="monster-name">${nameHtml}</div>
+                <div class="monster-sub">${boss.sub || ''}</div>
+                ${renderTraits(boss)}
+                <div class="stats-row">${statsHtml}</div>
+                <div class="mechanism-box">
+                    <div class="mech-title">怪物机制研究</div>
+                    ${mechHtml || '<div class="mech-line">无机制说明</div>'}
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    };
+
+    const renderCharts = async () => {
+        if (!allEntries.length) return;
+
+        // 确保所有怪物数据已加载
+        const allMonsterNames = new Set();
+        allEntries.forEach(entry => {
+            (entry.floors || []).forEach(floor => {
+                (floor.rooms || []).forEach(room => {
+                    (room || []).forEach(name => allMonsterNames.add(name));
+                });
+            });
+        });
+        await Promise.all([...allMonsterNames].map(n => loadMonster(n)));
+
+        const sortedEntries = allEntries.slice().reverse();
+        const labels = sortedEntries.map(e => e.deadly_name || "未知");
+
+        const totalData = [];
+        const firstTwoData = [];
+        const roomData = [[], [], []];
+
+        sortedEntries.forEach(entry => {
+            // 对每层求和？注意：演化图通常只展示某一层的演化，这里我们展示当前选中的层
+            const floorIdx = currentFloorIndex;
+            totalData.push(getFloorTotalHp(entry, floorIdx));
+            firstTwoData.push(getFirstTwoRoomsHp(entry, floorIdx));
+            for (let i = 0; i < 3; i++) {
+                roomData[i].push(getRoomHp(entry, floorIdx, i));
+            }
+        });
+
+        if (!chartInstance1) chartInstance1 = echarts.init(byId("totalChart"));
+        chartInstance1.setOption({
+            title: { text: `第${currentFloorIndex + 1}层 总血量演化`, left: "center", top: "2%", textStyle: { fontSize: 14, color: "#333" } },
+            tooltip: { trigger: "axis" },
+            legend: { top: "8%", left: "center", textStyle: { fontSize: 10 } },
+            grid: { left: "5%", right: "5%", top: "18%", bottom: "1%", containLabel: true },
+            xAxis: { type: "category", data: labels, axisLabel: { fontSize: 10, rotate: 45 } },
+            yAxis: { type: "value", axisLabel: { fontSize: 10 } },
+            series: [
+                { name: "三间总血量", type: "line", data: totalData, smooth: false, lineStyle: { color: "#cc0000" }, itemStyle: { color: "#cc0000" } },
+                { name: "前两间总血量", type: "line", data: firstTwoData, smooth: false, lineStyle: { color: "#2545ba" }, itemStyle: { color: "#2545ba" } }
+            ]
+        });
+
+        if (!chartInstance2) chartInstance2 = echarts.init(byId("bossChart"));
+        chartInstance2.setOption({
+            title: { text: `第${currentFloorIndex + 1}层 各间血量演化`, left: "center", top: "2%", textStyle: { fontSize: 14, color: "#333" } },
+            tooltip: { trigger: "axis" },
+            legend: { top: "8%", left: "center", textStyle: { fontSize: 10 } },
+            grid: { left: "5%", right: "5%", top: "18%", bottom: "1%", containLabel: true },
+            xAxis: { type: "category", data: labels, axisLabel: { fontSize: 10, rotate: 45 } },
+            yAxis: { type: "value", axisLabel: { fontSize: 10 } },
+            series: [
+                { name: "房间一", type: "line", data: roomData[0], smooth: false, lineStyle: { color: "#cc0000" }, itemStyle: { color: "#cc0000" } },
+                { name: "房间二", type: "line", data: roomData[1], smooth: false, lineStyle: { color: "#2545ba" }, itemStyle: { color: "#2545ba" } },
+                { name: "房间三", type: "line", data: roomData[2], smooth: false, lineStyle: { color: "#4CAF50" }, itemStyle: { color: "#4CAF50" } }
+            ]
+        });
+    };
+
+    const render = async () => {
+        updateHeader();
+        renderFloorText();
+        renderMonsterCards();
+        renderCharts();
+    };
+
+    // ============================================================
+    // 5. 期数选择弹层
+    // ============================================================
+    const renderPeriodGrid = () => {
+        const grid = byId("periodGrid");
+        if (!grid) return;
+        grid.innerHTML = allEntries.map((entry, i) => {
+            const active = i === currentIndex ? "active" : "";
+            return `<div class="period-card ${active}" data-index="${i}">
+                        <div class="pc-name">${entry.deadly_name || ""}</div>
+                        <div class="pc-time">${entry.time || ""}</div>
+                    </div>`;
+        }).join('');
+
+        grid.querySelectorAll(".period-card").forEach(card => {
+            card.addEventListener("click", async () => {
+                const idx = Number(card.dataset.index);
+                if (idx === currentIndex) { closePeriodModal(); return; }
+                currentIndex = idx;
+                await loadCurrentMonsters();
+                // 切换期数后，确保楼层索引不越界
+                const maxFloor = (allEntries[currentIndex].floors || []).length - 1;
+                if (currentFloorIndex > maxFloor) currentFloorIndex = maxFloor;
+                if (currentFloorIndex < 0) currentFloorIndex = 0;
+                closePeriodModal();
+                render();
+            });
+        });
+    };
+
+    const openPeriodModal = () => {
+        const entry = allEntries[currentIndex];
+        if (!entry) return;
+        byId("modalCurrentName").textContent = entry.deadly_name || "";
+        byId("modalCurrentTime").textContent = entry.time || "";
+        renderPeriodGrid();
+        byId("periodOverlay").classList.add("show");
+    };
+
+    const closePeriodModal = () => {
+        byId("periodOverlay").classList.remove("show");
+    };
+
+    // ============================================================
+    // 6. 事件
+    // ============================================================
+    const bindEvents = () => {
+        byId("downloadBtn").addEventListener("click", async (e) => {
+            e.preventDefault();
+            const btnBar = byId("btnBar");
+            const canvasEl = document.querySelector(".canvas");
+            const origStyle = canvasEl.getAttribute("style") || "";
+
+            btnBar.classList.add("hidden");
+            canvasEl.style.boxShadow = "none";
+
+            await new Promise(r => requestAnimationFrame(r));
+
+            try {
+                const canvas = await html2canvas(canvasEl, {
+                    scale: 2,
+                    backgroundColor: "#ffffff",
+                    useCORS: true,
+                    allowTaint: true,
+                    windowWidth: canvasEl.scrollWidth,
+                    windowHeight: canvasEl.scrollHeight,
+                    width: canvasEl.scrollWidth,
+                    height: canvasEl.scrollHeight,
+                });
+
+                const a = document.createElement("a");
+                const entry = allEntries[currentIndex];
+                a.download = `混沌回忆_${entry?.deadly_name || "未命名"}.png`;
+                a.href = canvas.toDataURL("image/png");
+                a.click();
+            } catch (err) {
+                console.error("截图失败:", err);
+                alert("截图失败，请查看控制台。");
+            } finally {
+                btnBar.classList.remove("hidden");
+                canvasEl.setAttribute("style", origStyle);
+            }
+        });
+
+        byId("toggleFormatBtn").addEventListener("click", () => {
+            currentImageFormat = currentImageFormat === 'webp' ? 'png' : 'webp';
+            byId("toggleFormatBtn").textContent = currentImageFormat === 'webp'
+                ? '切换图片格式-png'
+                : '切换图片格式-webp';
+            renderMonsterCards();
+        });
+
+        byId("prevSchedule").addEventListener("click", async (e) => {
+            e.stopPropagation();
+            currentIndex = wrapIndex(currentIndex + 1, allEntries.length);
+            await loadCurrentMonsters();
+            const maxFloor = (allEntries[currentIndex].floors || []).length - 1;
+            if (currentFloorIndex > maxFloor) currentFloorIndex = maxFloor;
+            if (currentFloorIndex < 0) currentFloorIndex = 0;
+            render();
+        });
+        byId("nextSchedule").addEventListener("click", async (e) => {
+            e.stopPropagation();
+            currentIndex = wrapIndex(currentIndex - 1, allEntries.length);
+            await loadCurrentMonsters();
+            const maxFloor = (allEntries[currentIndex].floors || []).length - 1;
+            if (currentFloorIndex > maxFloor) currentFloorIndex = maxFloor;
+            if (currentFloorIndex < 0) currentFloorIndex = 0;
+            render();
+        });
+
+        byId("prevFloor").addEventListener("click", () => {
+            const maxFloor = (allEntries[currentIndex].floors || []).length - 1;
+            currentFloorIndex = wrapIndex(currentFloorIndex - 1, maxFloor + 1);
+            renderFloorText();
+            renderMonsterCards();
+            renderCharts();
+        });
+        byId("nextFloor").addEventListener("click", () => {
+            const maxFloor = (allEntries[currentIndex].floors || []).length - 1;
+            currentFloorIndex = wrapIndex(currentFloorIndex + 1, maxFloor + 1);
+            renderFloorText();
+            renderMonsterCards();
+            renderCharts();
+        });
+
+        byId("periodTrigger").addEventListener("click", (e) => {
+            e.stopPropagation();
+            openPeriodModal();
+        });
+        byId("periodModalClose").addEventListener("click", closePeriodModal);
+        byId("periodOverlay").addEventListener("click", (e) => {
+            if (e.target.id === "periodOverlay") closePeriodModal();
+        });
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") closePeriodModal();
+        });
+
+        window.addEventListener('resize', () => {
+            if (chartInstance1) chartInstance1.resize();
+            if (chartInstance2) chartInstance2.resize();
+        });
+    };
+
+    // ============================================================
+    // 7. 初始化
+    // ============================================================
+    async function init() {
+        try {
+            await loadBaseHpTable();
+            allEntries = await loadIndex();
+            if (!allEntries.length) throw new Error('index.json 为空');
+            currentIndex = 0;
+            currentFloorIndex = (allEntries[0].floors || []).length - 1;
+            if (currentFloorIndex < 0) currentFloorIndex = 0;
+            await loadCurrentMonsters();
+            bindEvents();
+            await render();
+        } catch (err) {
+            console.error('初始化失败:', err);
+            byId("monsterRow").innerHTML = `<div style="grid-column: span 3; text-align: center; color: red; padding: 50px;">数据加载失败: ${err.message}</div>`;
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
+</script>
+
+</body>
+</html>
