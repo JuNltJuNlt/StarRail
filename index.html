@@ -361,7 +361,6 @@
             id: id,
             name: raw["4"] || `怪物 ${id}`,
             imagePath: raw["1"] || '',
-            weaknesses: raw["2"] || [], // 修复：从 catalog 的 "2" 字段获取弱点
             stance: raw["3"] || 0,
         };
     }
@@ -456,8 +455,8 @@
                onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<span class=\\'fallback\\'>${fallbackChar}</span>';">`
             : `<span class="fallback">${fallbackChar}</span>`;
 
-        // 修复：弱点取 info.weaknesses（映射自 catalog 的 "2"）
-        const weaknessHtml = (info.weaknesses || []).map(w => renderElemMini(w)).join('');
+        // 修复：弱点数据直接从 monster 对象中取，因为混沌 JSON 里是 `weakness`
+        const weaknessHtml = (monster.weakness || []).map(w => renderElemMini(w)).join('');
 
         const stance = (monster.stance || info.stance || 0) * 10;
         const speed = monster.speed || '?';
@@ -611,7 +610,7 @@
         });
 
         if (!chartInstance2) chartInstance2 = echarts.init(byId("bossChart"));
-        // 修复：颜色对调，房间一绿色，房间二紫色，星启橙色
+        // 修复：房间一绿色，房间二紫色
         const series = [
             { name: "房间一", type: "line", data: upperData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#10b981" }, itemStyle: { color: "#10b981" }, connectNulls: false },
             { name: "房间二", type: "line", data: lowerData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#a855f7" }, itemStyle: { color: "#a855f7" }, connectNulls: false }
