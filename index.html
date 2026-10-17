@@ -361,7 +361,7 @@
             id: id,
             name: raw["4"] || `怪物 ${id}`,
             imagePath: raw["1"] || '',
-            weaknesses: raw["2"] || [],
+            weaknesses: raw["2"] || [], // 弱点数组
             stance: raw["3"] || 0,
         };
     }
@@ -434,6 +434,7 @@
     };
 
     const renderElemMini = (elemCN) => {
+        // 根据原始参考图，元素的图标名为大写的英文首字母（如 Phys, Fire）
         const basePath = `${ELEMENT_IMAGE_ROOT}/${elemCN}`;
         const fallback = `this.onerror=null; this.src='${basePath}.webp'; this.onerror=function(){ this.style.display='none'; };`;
         return `<span class="elem-mini"><img src="${basePath}.avif" alt="${elemCN}" onerror="${fallback}"></span>`;
@@ -449,6 +450,7 @@
         const iconHtml = `<img src="${imgPath}" alt="${name}" loading="lazy"
             onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<span class=\\'fallback\\'>${fallbackChar}</span>';">`;
 
+        // 这里应该正常读取弱点
         const weaknessHtml = (info.weaknesses || []).map(w => renderElemMini(w)).join('');
 
         // 韧性数值 ×10
@@ -551,16 +553,14 @@
         }
     };
 
-    // 图表范围截断：第11-12层只截取从“藏于深空之秘”到最新一期
+    // 图表范围截断
     function getChartEntries() {
         if (currentFloorIndex < 10) return allEntries.slice().reverse();
         
-        // 11层及以上
         const startName = "藏于深空之秘";
         const idx = allEntries.findIndex(e => e.chaos_name === startName);
         if (idx === -1) return allEntries.slice().reverse();
         
-        // allEntries是倒序的，先截取从0到idx，然后再reverse（变为正序时间）
         return allEntries.slice(0, idx + 1).reverse();
     }
 
@@ -586,11 +586,16 @@
                 starData.push(null);
                 return;
             }
+            
+            // 如果当前楼层没有 star，但是该期有数据，说明没出，设成 null
+            const hasStarInFloor = (floor.star && floor.star.length > 0);
+            
             singleData.push(floorHpSingle(floor));
             multiData.push(floorHpMultiple(floor));
             upperData.push(sideHp(floor, 'upper'));
             lowerData.push(sideHp(floor, 'lower'));
-            starData.push(sideHp(floor, 'star'));
+            // 重点修复：对于没有 star 的期数，数据设为 null 而非 0
+            starData.push(hasStarInFloor ? sideHp(floor, 'star') : null);
         });
 
         if (!chartInstance1) chartInstance1 = echarts.init(byId("totalChart"));
@@ -613,7 +618,6 @@
             { name: "房间二", type: "line", data: lowerData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#2545ba" }, itemStyle: { color: "#2545ba" }, connectNulls: false }
         ];
         
-        // 修复：使用当前层对象判断是否有星启数据，避免 currentFloor 未定义
         const currentFloorData = (allEntries[currentIndex].floors || [])[currentFloorIndex];
         const hasStarData = (currentFloorData && currentFloorData.star && currentFloorData.star.length > 0);
         
@@ -629,7 +633,7 @@
             xAxis: { type: "category", data: labels, axisLabel: { fontSize: 10, rotate: 45 } },
             yAxis: { type: "value", axisLabel: { fontSize: 10 } },
             series
-        }, { replaceMerge: ['series'] }); // 使用 replaceMerge 来彻底隐藏不存在的曲线
+        }, { replaceMerge: ['series'] }); // 彻底重置并隐藏旧曲线
     };
 
     const render = () => {
