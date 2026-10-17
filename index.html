@@ -147,7 +147,7 @@
         .buff-desc { font-size: 13px; line-height: 1.7; color: #fff; }
         .buff-desc color { font-weight: bold; }
 
-        /* 整体内容区，横排三个房间 */
+        /* 整体内容区，横排多个房间 */
         .content-area { display: flex; gap: 0; width: 100%; align-items: stretch; }
         
         /* 房间均分宽度并带分割线 */
@@ -177,8 +177,6 @@
         .monster-icon { width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; }
         .monster-icon img { max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15)); }
         .monster-icon .fallback { font-size: 32px; font-weight: 700; color: #a855f7; }
-        
-        .monster-name { font-size: 14px; font-weight: 700; color: #000; margin-bottom: 4px; line-height: 1.2; }
         
         /* 弱点元素行 */
         .monster-weakness { display: flex; justify-content: center; gap: 2px; margin-bottom: 6px; height: 16px; }
@@ -236,7 +234,6 @@
 
             .monster-card { width: 80px; }
             .monster-icon { width: 70px; height: 70px; }
-            .monster-name { font-size: 13px; }
             .monster-stats { font-size: 12px; line-height: 1.6; }
 
             .chart-wrapper { height: 280px; }
@@ -454,36 +451,46 @@
 
         const weaknessHtml = (info.weaknesses || []).map(w => renderElemMini(w)).join('');
 
-        const hp = monsterTotalHp(monster);
+        // 韧性数值 ×10
+        const stance = (monster.stance || info.stance || 0) * 10;
         const speed = monster.speed || '?';
-        const stance = monster.stance || info.stance || '?';
         const times = monster.hp_ratio_sum ? monster.hp_ratio_sum : '';
-
-        // 匹配原图样式的文字
-        const stanceText = stance ? stance : '';
         const hpText = times ? `${monster.hp}×${times}` : `${monster.hp}`;
-        const speedText = speed ? speed : '';
 
         return `<div class="monster-card">
             <div class="monster-icon">${iconHtml}</div>
-            <div class="monster-name">${name}</div>
             <div class="monster-weakness">${weaknessHtml}</div>
             <div class="monster-stats">
-                <div class="stance">${stanceText}</div>
+                <div class="stance">${stance}</div>
                 <div class="hp">${hpText}</div>
-                <div class="speed">${speedText}</div>
+                <div class="speed">${speed}</div>
             </div>
         </div>`;
     };
 
     const renderStage = (stage, level) => {
+        // 找到该房间血量最高的怪，作为判断 Boss 的标准
+        let maxHpInStage = 0;
+        (stage.monsters || []).forEach(wave => {
+            (wave || []).forEach(m => {
+                const hp = monsterTotalHp(m);
+                if (hp > maxHpInStage) maxHpInStage = hp;
+            });
+        });
+
         const wavesHtml = (stage.monsters || []).map((wave, wi) => {
             const monstersHtml = (wave || []).map(m => renderMonsterCard(m, level)).join('');
             
-            // 如果该波只有 1 个怪，将其标题作为 Boss 名字加粗；否则显示第X波
-            let waveTitle = `第${wi + 1}波`;
+            // 中文数字波次
+            const chineseNums = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+            let waveTitle = `第${chineseNums[wi] || (wi + 1)}波`;
+
+            // 如果该波只有1个怪，且血量等于该房间最高血量（视为首领波），替换为加粗名称
             if (wave.length === 1) {
-                waveTitle = `<b>${getMonsterInfo(wave[0].id).name}</b>`;
+                const monsterHp = monsterTotalHp(wave[0]);
+                if (monsterHp === maxHpInStage) {
+                    waveTitle = `<b>${getMonsterInfo(wave[0].id).name}</b>`;
+                }
             }
 
             return `<div class="wave-block">
@@ -595,18 +602,21 @@
             xAxis: { type: "category", data: labels, axisLabel: { fontSize: 10, rotate: 45 } },
             yAxis: { type: "value", axisLabel: { fontSize: 10 } },
             series: [
-                { name: "单攻", type: "line", data: singleData, smooth: false, symbol: 'emptyCircle', symbolSize: 6, lineStyle: { color: "#cc0000" }, itemStyle: { color: "#cc0000" }, connectNulls: false },
-                { name: "群攻", type: "line", data: multiData, smooth: false, symbol: 'emptyCircle', symbolSize: 6, lineStyle: { color: "#2545ba" }, itemStyle: { color: "#2545ba" }, connectNulls: false }
+                { name: "单攻", type: "line", data: singleData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#cc0000" }, itemStyle: { color: "#cc0000" }, connectNulls: false },
+                { name: "群攻", type: "line", data: multiData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#2545ba" }, itemStyle: { color: "#2545ba" }, connectNulls: false }
             ]
         });
 
         if (!chartInstance2) chartInstance2 = echarts.init(byId("bossChart"));
         const series = [
-            { name: "房间一", type: "line", data: upperData, smooth: false, symbol: 'emptyCircle', symbolSize: 6, lineStyle: { color: "#cc0000" }, itemStyle: { color: "#cc0000" }, connectNulls: false },
-            { name: "房间二", type: "line", data: lowerData, smooth: false, symbol: 'emptyCircle', symbolSize: 6, lineStyle: { color: "#2545ba" }, itemStyle: { color: "#2545ba" }, connectNulls: false }
+            { name: "房间一", type: "line", data: upperData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#cc0000" }, itemStyle: { color: "#cc0000" }, connectNulls: false },
+            { name: "房间二", type: "line", data: lowerData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#2545ba" }, itemStyle: { color: "#2545ba" }, connectNulls: false }
         ];
-        if (starData.some(v => v !== null && v > 0)) {
-            series.push({ name: "星启模式", type: "line", data: starData, smooth: false, symbol: 'emptyCircle', symbolSize: 6, lineStyle: { color: "#f59e0b" }, itemStyle: { color: "#f59e0b" }, connectNulls: false });
+        
+        // 仅当该层有星启/第三间的数据时，才加入曲线
+        const hasStarData = (currentFloor().star && currentFloor().star.length > 0);
+        if (hasStarData) {
+            series.push({ name: "星启模式", type: "line", data: starData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#f59e0b" }, itemStyle: { color: "#f59e0b" }, connectNulls: false });
         }
 
         chartInstance2.setOption({
@@ -617,7 +627,7 @@
             xAxis: { type: "category", data: labels, axisLabel: { fontSize: 10, rotate: 45 } },
             yAxis: { type: "value", axisLabel: { fontSize: 10 } },
             series
-        });
+        }, { replaceMerge: ['series'] }); // 使用 replaceMerge 来彻底隐藏不存在的曲线
     };
 
     const render = () => {
