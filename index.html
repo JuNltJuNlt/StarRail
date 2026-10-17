@@ -320,7 +320,8 @@
     // 1. 配置
     // ============================================================
     const DATA_ROOT = 'data/chaos';
-    const ELEMENT_IMAGE_ROOT = 'element';
+    // 修复：图片路径改为正确的 images/element 和 images/monster
+    const ELEMENT_IMAGE_ROOT = 'images/element';
 
     let allEntries = [];
     let monsterCatalog = {};
@@ -448,7 +449,7 @@
         const iconHtml = `<img src="${imgPath}" alt="${name}" loading="lazy"
             onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<span class=\\'fallback\\'>${fallbackChar}</span>';">`;
 
-        // 修复：弱点数据直接从 monster 对象中的 weakness 字段获取
+        // 修复：弱点数据取自 monster.weakness
         const weaknessHtml = (monster.weakness || []).map(w => renderElemMini(w)).join('');
 
         // 韧性数值 ×10
@@ -585,7 +586,6 @@
                 return;
             }
             
-            // 修复：如果该楼层没有 star，但总数据里有，设为 null 防止 0 点
             const hasStarInFloor = (floor.star && floor.star.length > 0);
             
             singleData.push(floorHpSingle(floor));
@@ -610,17 +610,17 @@
         });
 
         if (!chartInstance2) chartInstance2 = echarts.init(byId("bossChart"));
-        // 修复：各间颜色参考 shiyu.js，红蓝绿
+        // 修复：各间颜色参考最早发的幽境危战index：#a855f7, #10b981, #f59e0b
         const series = [
-            { name: "房间一", type: "line", data: upperData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#cc0000" }, itemStyle: { color: "#cc0000" }, connectNulls: false },
-            { name: "房间二", type: "line", data: lowerData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#2545ba" }, itemStyle: { color: "#2545ba" }, connectNulls: false }
+            { name: "房间一", type: "line", data: upperData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#a855f7" }, itemStyle: { color: "#a855f7" }, connectNulls: false },
+            { name: "房间二", type: "line", data: lowerData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#10b981" }, itemStyle: { color: "#10b981" }, connectNulls: false }
         ];
         
         const currentFloorData = (allEntries[currentIndex].floors || [])[currentFloorIndex];
         const hasStarData = (currentFloorData && currentFloorData.star && currentFloorData.star.length > 0);
         
         if (hasStarData) {
-            series.push({ name: "星启模式", type: "line", data: starData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#4CAF50" }, itemStyle: { color: "#4CAF50" }, connectNulls: false });
+            series.push({ name: "星启模式", type: "line", data: starData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#f59e0b" }, itemStyle: { color: "#f59e0b" }, connectNulls: false });
         }
 
         chartInstance2.setOption({
@@ -631,7 +631,7 @@
             xAxis: { type: "category", data: labels, axisLabel: { fontSize: 10, rotate: 45 } },
             yAxis: { type: "value", axisLabel: { fontSize: 10 } },
             series
-        }, { replaceMerge: ['series'] }); // 彻底重置并隐藏旧曲线
+        }, { replaceMerge: ['series'] }); 
     };
 
     const render = () => {
