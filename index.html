@@ -320,8 +320,7 @@
     // 1. 配置
     // ============================================================
     const DATA_ROOT = 'data/chaos';
-    // 修复：图片路径改为正确的 images/element 和 images/monster
-    const ELEMENT_IMAGE_ROOT = 'images/element';
+    const ELEMENT_IMAGE_ROOT = 'images/element'; // 修正为 images/element
 
     let allEntries = [];
     let monsterCatalog = {};
@@ -362,6 +361,7 @@
             id: id,
             name: raw["4"] || `怪物 ${id}`,
             imagePath: raw["1"] || '',
+            weaknesses: raw["2"] || [], // 从 catalog 获取弱点
             stance: raw["3"] || 0,
         };
     }
@@ -449,8 +449,8 @@
         const iconHtml = `<img src="${imgPath}" alt="${name}" loading="lazy"
             onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<span class=\\'fallback\\'>${fallbackChar}</span>';">`;
 
-        // 修复：弱点数据取自 monster.weakness
-        const weaknessHtml = (monster.weakness || []).map(w => renderElemMini(w)).join('');
+        // 修复：弱点来自 catalog 的 weaknesses
+        const weaknessHtml = (info.weaknesses || []).map(w => renderElemMini(w)).join('');
 
         // 韧性数值 ×10
         const stance = (monster.stance || info.stance || 0) * 10;
