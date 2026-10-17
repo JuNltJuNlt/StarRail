@@ -361,7 +361,6 @@
             id: id,
             name: raw["4"] || `怪物 ${id}`,
             imagePath: raw["1"] || '',
-            weaknesses: raw["2"] || [], // 弱点数组
             stance: raw["3"] || 0,
         };
     }
@@ -434,7 +433,6 @@
     };
 
     const renderElemMini = (elemCN) => {
-        // 根据原始参考图，元素的图标名为大写的英文首字母（如 Phys, Fire）
         const basePath = `${ELEMENT_IMAGE_ROOT}/${elemCN}`;
         const fallback = `this.onerror=null; this.src='${basePath}.webp'; this.onerror=function(){ this.style.display='none'; };`;
         return `<span class="elem-mini"><img src="${basePath}.avif" alt="${elemCN}" onerror="${fallback}"></span>`;
@@ -450,8 +448,8 @@
         const iconHtml = `<img src="${imgPath}" alt="${name}" loading="lazy"
             onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<span class=\\'fallback\\'>${fallbackChar}</span>';">`;
 
-        // 这里应该正常读取弱点
-        const weaknessHtml = (info.weaknesses || []).map(w => renderElemMini(w)).join('');
+        // 修复：弱点数据直接从 monster 对象中的 weakness 字段获取
+        const weaknessHtml = (monster.weakness || []).map(w => renderElemMini(w)).join('');
 
         // 韧性数值 ×10
         const stance = (monster.stance || info.stance || 0) * 10;
@@ -587,14 +585,13 @@
                 return;
             }
             
-            // 如果当前楼层没有 star，但是该期有数据，说明没出，设成 null
+            // 修复：如果该楼层没有 star，但总数据里有，设为 null 防止 0 点
             const hasStarInFloor = (floor.star && floor.star.length > 0);
             
             singleData.push(floorHpSingle(floor));
             multiData.push(floorHpMultiple(floor));
             upperData.push(sideHp(floor, 'upper'));
             lowerData.push(sideHp(floor, 'lower'));
-            // 重点修复：对于没有 star 的期数，数据设为 null 而非 0
             starData.push(hasStarInFloor ? sideHp(floor, 'star') : null);
         });
 
@@ -613,6 +610,7 @@
         });
 
         if (!chartInstance2) chartInstance2 = echarts.init(byId("bossChart"));
+        // 修复：各间颜色参考 shiyu.js，红蓝绿
         const series = [
             { name: "房间一", type: "line", data: upperData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#cc0000" }, itemStyle: { color: "#cc0000" }, connectNulls: false },
             { name: "房间二", type: "line", data: lowerData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#2545ba" }, itemStyle: { color: "#2545ba" }, connectNulls: false }
@@ -622,7 +620,7 @@
         const hasStarData = (currentFloorData && currentFloorData.star && currentFloorData.star.length > 0);
         
         if (hasStarData) {
-            series.push({ name: "星启模式", type: "line", data: starData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#f59e0b" }, itemStyle: { color: "#f59e0b" }, connectNulls: false });
+            series.push({ name: "星启模式", type: "line", data: starData, smooth: false, symbol: 'emptyCircle', symbolSize: 4, lineStyle: { color: "#4CAF50" }, itemStyle: { color: "#4CAF50" }, connectNulls: false });
         }
 
         chartInstance2.setOption({
